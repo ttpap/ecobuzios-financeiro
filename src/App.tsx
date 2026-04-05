@@ -26,6 +26,7 @@ import { SessionProvider } from "@/context/SessionContext";
 import { RequireAuth } from "@/components/app/RequireAuth";
 import { AppShell } from "@/components/app/AppShell";
 import API from "@/pages/API";
+import Arquivados from "@/pages/Arquivados";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/projects" element={<AuthedLayout><Projects /></AuthedLayout>} />
             <Route path="/api" element={<AuthedLayout><API /></AuthedLayout>} />
             <Route path="/fornecedores" element={<AuthedLayout><Fornecedores /></AuthedLayout>} />
+            <Route path="/arquivados" element={<AuthedLayout><Arquivados /></AuthedLayout>} />
 
             {/* Módulo Balancete */}
             <Route path="/balancete" element={<AuthedLayout><PlanilhaProjeto /></AuthedLayout>} />

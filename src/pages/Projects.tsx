@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { FolderKanban, Pencil, Plus, Trash2, Table2 } from "lucide-react";
+import { Archive, FolderKanban, Pencil, Plus, Table2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProjectLogoUploader } from "@/components/projects/ProjectLogoUploader";
 
@@ -387,24 +387,24 @@ export default function Projects() {
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" className="rounded-full">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
+                            <Archive className="mr-2 h-4 w-4" />
+                            Arquivar
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="rounded-3xl">
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
+                            <AlertDialogTitle>Arquivar projeto?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta ação remove o projeto da sua lista (exclusão lógica).
+                              O projeto será movido para a seção de Arquivados. Você pode restaurá-lo a qualquer momento.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="rounded-full">Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                              className="rounded-full bg-red-600 text-white hover:bg-red-700"
+                              className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
                               onClick={() => deleteProject.mutate(p.id)}
                             >
-                              Excluir
+                              Arquivar
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

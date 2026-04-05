@@ -1,0 +1,84 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import Projects from "@/pages/Projects";
+import ImportBudget from "@/pages/ImportBudget";
+import ImportConferencia from "@/pages/ImportConferencia";
+import MontarPlanilha from "@/pages/MontarPlanilha";
+import PlanilhaProjeto from "@/pages/PlanilhaProjeto";
+import ExecucaoProjeto from "@/pages/ExecucaoProjeto";
+import Fornecedores from "@/pages/Fornecedores";
+import BalanceteLinha from "@/pages/BalanceteLinha";
+import Lancamentos from "@/pages/Lancamentos";
+import Relatorios from "@/pages/Relatorios";
+import Settings from "@/pages/Settings";
+import BalanceteLancamentos from "@/pages/BalanceteLancamentos";
+import BalanceteRelatorios from "@/pages/BalanceteRelatorios";
+import BalanceteAlertas from "@/pages/BalanceteAlertas";
+import BalanceteConfiguracoes from "@/pages/BalanceteConfiguracoes";
+import { SessionProvider } from "@/context/SessionContext";
+import { RequireAuth } from "@/components/app/RequireAuth";
+import { AppShell } from "@/components/app/AppShell";
+import API from "@/pages/API";
+
+const queryClient = new QueryClient();
+
+const AuthedLayout = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth>
+    <AppShell>{children}</AppShell>
+  </RequireAuth>
+);
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <SessionProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+
+            <Route path="/dashboard" element={<AuthedLayout><Dashboard /></AuthedLayout>} />
+            <Route path="/projects" element={<AuthedLayout><Projects /></AuthedLayout>} />
+            <Route path="/api" element={<AuthedLayout><API /></AuthedLayout>} />
+            <Route path="/fornecedores" element={<AuthedLayout><Fornecedores /></AuthedLayout>} />
+
+            {/* Módulo Balancete */}
+            <Route path="/balancete" element={<AuthedLayout><PlanilhaProjeto /></AuthedLayout>} />
+            <Route path="/balancete/planilha" element={<AuthedLayout><PlanilhaProjeto /></AuthedLayout>} />
+            <Route path="/balancete/execucao" element={<AuthedLayout><ExecucaoProjeto /></AuthedLayout>} />
+
+            {/* Rotas antigas (mantidas por compatibilidade, mas não usadas nesta etapa) */}
+            <Route path="/balancete/importar" element={<AuthedLayout><ImportBudget /></AuthedLayout>} />
+            <Route path="/balancete/montar" element={<AuthedLayout><MontarPlanilha /></AuthedLayout>} />
+            <Route path="/balancete/importar/:id" element={<AuthedLayout><ImportConferencia /></AuthedLayout>} />
+            <Route path="/balancete/lancamentos" element={<AuthedLayout><BalanceteLancamentos /></AuthedLayout>} />
+            <Route path="/balancete/relatorios" element={<AuthedLayout><BalanceteRelatorios /></AuthedLayout>} />
+            <Route path="/balancete/alertas" element={<AuthedLayout><BalanceteAlertas /></AuthedLayout>} />
+            <Route path="/balancete/configuracoes" element={<AuthedLayout><BalanceteConfiguracoes /></AuthedLayout>} />
+            <Route path="/balancete/linha/:id" element={<AuthedLayout><BalanceteLinha /></AuthedLayout>} />
+
+            {/* Rotas legadas (mantidas) */}
+            <Route path="/import" element={<Navigate to="/balancete/importar" replace />} />
+            <Route path="/lancamentos" element={<AuthedLayout><Lancamentos /></AuthedLayout>} />
+            <Route path="/relatorios" element={<AuthedLayout><Relatorios /></AuthedLayout>} />
+            <Route path="/settings" element={<AuthedLayout><Settings /></AuthedLayout>} />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </SessionProvider>
+  </QueryClientProvider>
+);
+
+export default App;

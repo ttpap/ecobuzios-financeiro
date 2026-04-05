@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Archive, FolderKanban, Pencil, Plus, Table2 } from "lucide-react";
+import { Archive, FolderKanban, Pencil, Plus, Table2, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProjectLogoUploader } from "@/components/projects/ProjectLogoUploader";
 
@@ -164,7 +164,24 @@ export default function Projects() {
       return projectId;
     },
     onSuccess: (projectId) => {
-      toast.success("Projeto removido");
+      toast.success("Projeto arquivado");
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      if (activeProjectId === projectId) setActiveProjectId(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Falha ao arquivar"),
+  });
+
+  const permanentDeleteProject = useMutation({
+    mutationFn: async (projectId: string) => {
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", projectId);
+      if (error) throw error;
+      return projectId;
+    },
+    onSuccess: (projectId) => {
+      toast.success("Projeto excluído permanentemente");
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       if (activeProjectId === projectId) setActiveProjectId(null);
     },
@@ -405,6 +422,32 @@ export default function Projects() {
                               onClick={() => deleteProject.mutate(p.id)}
                             >
                               Arquivar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="rounded-full text-red-600 hover:text-red-700">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-3xl">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir permanentemente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação é irreversível e remove o projeto e todos os seus dados definitivamente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-full">Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="rounded-full bg-red-600 text-white hover:bg-red-700"
+                              onClick={() => permanentDeleteProject.mutate(p.id)}
+                            >
+                              Excluir permanentemente
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

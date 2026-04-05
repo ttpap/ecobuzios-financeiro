@@ -49,14 +49,14 @@ function formatSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-async function getPublicUrl(path: string) {
-  const { data } = supabase.storage.from('transaction-attachments').getPublicUrl(path);
-  return data?.publicUrl || '';
+async function getSignedUrl(path: string) {
+  const { data } = await supabase.storage.from('invoices').createSignedUrl(path, 3600);
+  return data?.signedUrl || '';
 }
 
 function DocCard({ doc }: { doc: DocEntry }) {
   const handleOpen = async () => {
-    const url = await getPublicUrl(doc.storage_path);
+    const url = await getSignedUrl(doc.storage_path);
     if (url) window.open(url, '_blank');
   };
 

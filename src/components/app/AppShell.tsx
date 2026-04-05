@@ -48,7 +48,7 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           </Link>
 
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1 md:flex overflow-x-auto">
             {nav.map((item) => {
               const active = location.pathname.startsWith(item.to);
               const Icon = item.icon;
@@ -57,7 +57,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition",
+                    "inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition",
                     active
                       ? "bg-[hsl(var(--brand)/0.12)] text-[hsl(var(--brand))]"
                       : "text-[hsl(var(--ink))] hover:bg-black/5"

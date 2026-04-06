@@ -12,8 +12,18 @@ export function safeFileName(name: string) {
     .slice(0, 120);
 }
 
-export function monthRefFromIndex(index1: number) {
-  const base = new Date(Date.UTC(2000, 0, 1));
+export function monthRefFromIndex(index1: number, startMonth?: string | null) {
+  let base: Date;
+
+  if (startMonth && /^\d{4}-\d{2}$/.test(startMonth)) {
+    // startMonth format: "YYYY-MM"
+    const [year, month] = startMonth.split("-").map(Number);
+    base = new Date(Date.UTC(year, month - 1, 1));
+  } else {
+    // Fallback: use 2000-01-01 (preserves backward compatibility)
+    base = new Date(Date.UTC(2000, 0, 1));
+  }
+
   const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + (index1 - 1), 1));
   return d.toISOString().slice(0, 10);
 }
@@ -116,4 +126,13 @@ export function buildProjectStoragePath(projectId: string, fileName: string) {
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   const base = safeBaseName(fileName || "arquivo");
   return `${projectId}/${ts}-${base}`;
+}
+
+export function formatStartMonth(startMonth?: string | null): string {
+  if (!startMonth || !/^\d{4}-\d{2}$/.test(startMonth)) {
+    return "—";
+  }
+  const [year, month] = startMonth.split("-").map(Number);
+  const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  return `${months[month - 1]}/${year}`;
 }

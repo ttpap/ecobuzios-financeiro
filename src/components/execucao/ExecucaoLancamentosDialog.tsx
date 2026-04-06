@@ -16,6 +16,7 @@ export function ExecucaoLancamentosDialog({
   line,
   monthIndex,
   monthsCount,
+  budgetStartMonth,
   onChangeSelectedLineId,
 }: {
   open: boolean;
@@ -25,11 +26,12 @@ export function ExecucaoLancamentosDialog({
   line: BudgetLine | null;
   monthIndex: number;
   monthsCount: number;
+  budgetStartMonth?: string | null;
   onChangeSelectedLineId?: (lineId: string) => void;
 }) {
   const form = useTransactionForm(monthIndex, line?.id ?? "");
 
-  const monthRef = useMemo(() => monthRefFromIndex(form.currentMonthIndex), [form.currentMonthIndex]);
+  const monthRef = useMemo(() => monthRefFromIndex(form.currentMonthIndex, budgetStartMonth), [form.currentMonthIndex, budgetStartMonth]);
 
   const {
     linesForSelect,

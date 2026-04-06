@@ -26,6 +26,7 @@ export type Budget = {
   name: string;
   months_count: number;
   status: string;
+  start_month?: string | null;
   created_at: string;
 };
 

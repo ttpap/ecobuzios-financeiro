@@ -39,6 +39,7 @@ export default function ImportBudget() {
   const [parseOut, setParseOut] = useState<ParseOutput | null>(null);
   const [monthsCount, setMonthsCount] = useState<number>(12);
   const [budgetName, setBudgetName] = useState<string>("Orçamento");
+  const [startMonth, setStartMonth] = useState<string>(new Date().toISOString().slice(0, 7));
 
   const importsQuery = useQuery({
     queryKey: ["orcamentosImportados", activeProjectId],
@@ -159,6 +160,7 @@ export default function ImportBudget() {
             project_id: activeProjectId,
             name: budgetName.trim() || "Orçamento",
             months_count: Math.max(1, Math.min(60, monthsCount)),
+            start_month: startMonth || null,
           })
           .select("*")
           .single();
@@ -326,6 +328,14 @@ export default function ImportBudget() {
                 min={1}
                 max={60}
                 onChange={(e) => setMonthsCount(Number(e.target.value))}
+                className="mt-1 rounded-2xl"
+              />
+
+              <div className="mt-3 text-xs font-medium text-[hsl(var(--muted-ink))]">Mês inicial (YYYY-MM)</div>
+              <Input
+                value={startMonth}
+                type="month"
+                onChange={(e) => setStartMonth(e.target.value)}
                 className="mt-1 rounded-2xl"
               />
 

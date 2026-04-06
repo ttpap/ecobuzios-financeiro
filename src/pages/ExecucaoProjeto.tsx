@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ExecucaoLancamentosDialog } from "@/components/execucao/ExecucaoLancamentosDialog";
 import { BalanceteTabs } from "@/components/balancete/BalanceteTabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatStartMonth } from "@/lib/fileUtils";
 
 function clampInt(v: number, min: number, max: number) {
   if (!Number.isFinite(v)) return min;
@@ -22,9 +23,14 @@ function buildMonthLabels(monthsCount: number) {
   return Array.from({ length: monthsCount }, (_, i) => ({ idx: i + 1, label: `Mês ${i + 1}` }));
 }
 
-function monthRefFromIndex(index1: number) {
-  // Sem calendário real nesta etapa: usamos um date estável por mês (2000-01-01 + (index-1) meses)
-  const base = new Date(Date.UTC(2000, 0, 1));
+function monthRefFromIndex(index1: number, startMonth?: string | null) {
+  let base: Date;
+  if (startMonth && /^\d{4}-\d{2}$/.test(startMonth)) {
+    const [year, month] = startMonth.split("-").map(Number);
+    base = new Date(Date.UTC(year, month - 1, 1));
+  } else {
+    base = new Date(Date.UTC(2000, 0, 1));
+  }
   const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + (index1 - 1), 1));
   return d.toISOString().slice(0, 10);
 }
@@ -176,7 +182,7 @@ export default function ExecucaoProjeto() {
       byLine.set(l.id, (byLine.get(l.id) ?? 0) + lineTotal);
 
       for (let m = 1; m <= monthsCount; m++) {
-        const mk = monthRefFromIndex(m);
+        const mk = monthRefFromIndex(m, (budgetQuery.data as any)?.start_month);
         const planned = plannedMonthAmount(l, m);
         if (!planned) continue;
         byMonth.set(mk, (byMonth.get(mk) ?? 0) + planned);
@@ -185,7 +191,7 @@ export default function ExecucaoProjeto() {
     }
 
     return { total, byLine, byMonth, byLineMonth };
-  }, [linesQuery.data, monthsCount]);
+  }, [linesQuery.data, monthsCount, budgetQuery.data]);
 
   const lineTotals = useMemo(() => {
     const byLine = new Map<string, { planned: number; executed: number }>();
@@ -213,13 +219,13 @@ export default function ExecucaoProjeto() {
 
   const footerByMonth = useMemo(() => {
     const totals = monthCols.map((m) => {
-      const mk = monthRefFromIndex(m.idx);
+      const mk = monthRefFromIndex(m.idx, (budgetQuery.data as any)?.start_month);
       const planned = plannedAgg.byMonth.get(mk) ?? 0;
       const executed = executedAgg.byMonth.get(mk) ?? 0;
       return { mk, planned, executed, remaining: planned - executed };
     });
     return totals;
-  }, [monthCols, plannedAgg.byMonth, executedAgg.byMonth]);
+  }, [monthCols, plannedAgg.byMonth, executedAgg.byMonth, budgetQuery.data]);
 
   const [open, setOpen] = useState(false);
   const [selectedLine, setSelectedLine] = useState<BudgetLine | null>(null);
@@ -277,6 +283,7 @@ export default function ExecucaoProjeto() {
               <TableRow className="bg-gray-50">
                 <TableHead className="min-w-[110px] font-bold text-[hsl(var(--ink))]">Código</TableHead>
                 <TableHead className="min-w-[320px] font-bold text-[hsl(var(--ink))]">Descrição</TableHead>
+                <TableHead className="min-w-[110px] font-bold text-[hsl(var(--ink))]">Mês inicial</TableHead>
                 {monthCols.map((m) => (
                   <TableHead key={m.idx} className="min-w-[120px] text-right font-bold text-[hsl(var(--ink))]">
                     {m.label}
@@ -297,6 +304,7 @@ export default function ExecucaoProjeto() {
                     <TableRow key={cat.id} className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">{cat.code}</TableCell>
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">{cat.name}</TableCell>
+                      <TableCell className="text-sm text-[hsl(var(--muted-ink))]">{formatStartMonth((budgetQuery.data as any)?.start_month)}</TableCell>
                       {monthCols.map((m) => (
                         <TableCell key={m.idx} />
                       ))}
@@ -321,9 +329,19 @@ export default function ExecucaoProjeto() {
                         <TableRow key={l.id} className={cn(lineIdx % 2 === 1 ? "!bg-blue-50" : "bg-white", "hover:!bg-blue-100 transition-colors")}>
                           <TableCell className="font-medium text-[hsl(var(--ink))]">{l.code}</TableCell>
                           <TableCell className="text-[hsl(var(--ink))]">{l.name}</TableCell>
+                          <TableCell className="text-sm text-[hsl(var(--muted-ink))]">
+                            {(() => {
+                              const lineStartMonth = Number(l.start_month ?? 1);
+                              const budgetStart = (budgetQuery.data as any)?.start_month;
+                              const monthRef = monthRefFromIndex(lineStartMonth, budgetStart);
+                              const [year, month] = monthRef.split("-").map(Number);
+                              const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+                              return `${months[month - 1]}/${year}`;
+                            })()}
+                          </TableCell>
 
                           {monthCols.map((m) => {
-                            const mk = monthRefFromIndex(m.idx);
+                            const mk = monthRefFromIndex(m.idx, (budgetQuery.data as any)?.start_month);
                             const planned = plannedAgg.byLineMonth.get(`${l.id}__${mk}`) ?? 0;
                             const executed = executedAgg.byLineMonth.get(`${l.id}__${mk}`) ?? 0;
                             const remaining = planned - executed;
@@ -443,6 +461,7 @@ export default function ExecucaoProjeto() {
         line={selectedLine}
         monthIndex={selectedMonth}
         monthsCount={monthsCount}
+        budgetStartMonth={(budgetQuery.data as any)?.start_month}
         onChangeSelectedLineId={(lineId) => {
           const next = (linesQuery.data ?? []).find((l) => l.id === lineId) ?? null;
           if (next) setSelectedLine(next);

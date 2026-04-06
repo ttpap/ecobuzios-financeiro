@@ -14,6 +14,7 @@ import { calcMonthAmount, nextSubitemCode } from "@/lib/budgetUtils";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { BalanceteTabs } from "@/components/balancete/BalanceteTabs";
+import { monthRefFromIndex } from "@/lib/fileUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -120,6 +121,22 @@ export default function PlanilhaProjeto() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budget", activeProjectId] });
     },
+  });
+
+  const updateStartMonth = useMutation({
+    mutationFn: async (newStartMonth: string) => {
+      if (!budgetQuery.data?.id) throw new Error("Orçamento não carregado");
+      const { error } = await supabase
+        .from("budgets")
+        .update({ start_month: newStartMonth } as any)
+        .eq("id", budgetQuery.data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budget", activeProjectId] });
+      toast.success("Mês inicial do projeto atualizado");
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao atualizar mês inicial"),
   });
 
   useEffect(() => {
@@ -471,11 +488,58 @@ export default function PlanilhaProjeto() {
                 <TableHead className="min-w-[160px] text-right font-bold text-[hsl(var(--ink))]">Valor total</TableHead>
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Mês inicial</TableHead>
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Mês final</TableHead>
-                {monthCols.map((m) => (
-                  <TableHead key={m.idx} className="min-w-[120px] text-right font-bold text-[hsl(var(--ink))]">
-                    {m.label}
-                  </TableHead>
-                ))}
+                {monthCols.map((m) => {
+                  const budgetStart = (budgetQuery.data as any)?.start_month as string | null | undefined;
+                  if (m.idx === 1) {
+                    const selMonth = budgetStart ? Number(budgetStart.split("-")[1]) : new Date().getMonth() + 1;
+                    const selYear = budgetStart ? Number(budgetStart.split("-")[0]) : new Date().getFullYear();
+                    return (
+                      <TableHead key={m.idx} className="min-w-[180px] font-bold text-[hsl(var(--ink))]">
+                        <div className="flex flex-col gap-1">
+                          <span>{m.label}</span>
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={selMonth}
+                              onChange={(e) => {
+                                const newM = String(e.target.value).padStart(2, "0");
+                                updateStartMonth.mutate(`${selYear}-${newM}`);
+                              }}
+                              className="h-8 rounded-full border border-input bg-background px-2 text-xs font-normal focus:outline-none focus:ring-2 focus:ring-ring"
+                            >
+                              {["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"].map((n, i) => (
+                                <option key={i} value={i + 1}>{n}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={selYear}
+                              onChange={(e) => {
+                                const newM = String(selMonth).padStart(2, "0");
+                                updateStartMonth.mutate(`${e.target.value}-${newM}`);
+                              }}
+                              className="h-8 rounded-full border border-input bg-background px-2 text-xs font-normal focus:outline-none focus:ring-2 focus:ring-ring"
+                            >
+                              {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i).map((y) => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </TableHead>
+                    );
+                  }
+                  const ref = monthRefFromIndex(m.idx, budgetStart);
+                  const [ry, rm] = ref.split("-").map(Number);
+                  const nomes = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+                  const calLabel = budgetStart ? `${nomes[rm - 1]}/${ry}` : null;
+                  return (
+                    <TableHead key={m.idx} className="min-w-[120px] text-right font-bold text-[hsl(var(--ink))]">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>{m.label}</span>
+                        {calLabel && <span className="text-xs font-normal text-[hsl(var(--muted-ink))]">{calLabel}</span>}
+                      </div>
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="min-w-[90px] text-right font-bold text-[hsl(var(--ink))]">Ações</TableHead>
               </TableRow>
             </TableHeader>

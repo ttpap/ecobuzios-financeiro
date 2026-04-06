@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,10 +11,14 @@ import {
   Search,
   FolderOpen,
   Download,
+  Eye,
   ChevronDown,
   ChevronRight,
+  FolderDown,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import JSZip from "jszip";
 
 type DocEntry = {
   project_id: string;
@@ -55,9 +58,18 @@ async function getSignedUrl(path: string) {
 }
 
 function DocCard({ doc }: { doc: DocEntry }) {
-  const handleOpen = async () => {
+  const handlePreview = async () => {
     const url = await getSignedUrl(doc.storage_path);
     if (url) window.open(url, '_blank');
+  };
+
+  const handleDownload = async () => {
+    const url = await getSignedUrl(doc.storage_path);
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.file_name;
+    a.click();
   };
 
   return (
@@ -90,7 +102,17 @@ function DocCard({ doc }: { doc: DocEntry }) {
         variant="ghost"
         size="sm"
         className="rounded-full shrink-0"
-        onClick={handleOpen}
+        title="Visualizar"
+        onClick={handlePreview}
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="rounded-full shrink-0"
+        title="Baixar"
+        onClick={handleDownload}
       >
         <Download className="h-4 w-4" />
       </Button>
@@ -108,6 +130,32 @@ function ProjectFolder({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [zipping, setZipping] = useState(false);
+
+  const handleDownloadAll = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZipping(true);
+    try {
+      const zip = new JSZip();
+      await Promise.all(
+        docs.map(async (doc) => {
+          const url = await getSignedUrl(doc.storage_path);
+          if (!url) return;
+          const res = await fetch(url);
+          const blob = await res.blob();
+          zip.file(doc.file_name, blob);
+        })
+      );
+      const content = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(content);
+      a.download = `${projectName}.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } finally {
+      setZipping(false);
+    }
+  };
 
   return (
     <div className="rounded-3xl border bg-white overflow-hidden">
@@ -127,6 +175,19 @@ function ProjectFolder({
         <span className="rounded-full bg-[hsl(var(--brand)/0.1)] px-2 py-0.5 text-xs font-bold text-[hsl(var(--brand))]">
           {docs.length}
         </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded-full shrink-0 ml-1"
+          title="Baixar pasta completa (.zip)"
+          onClick={handleDownloadAll}
+          disabled={zipping}
+        >
+          {zipping
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : <FolderDown className="h-4 w-4" />
+          }
+        </Button>
       </button>
 
       {open && (

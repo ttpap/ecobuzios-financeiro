@@ -32,6 +32,9 @@ type DocEntry = {
   description: string | null;
   document_number: string | null;
   expense_type: string | null;
+  vendor_name: string | null;
+  paid_date: string | null;
+  amount: number | null;
 };
 
 function FileIcon({ name }: { name: string }) {
@@ -79,8 +82,20 @@ function DocCard({ doc }: { doc: DocEntry }) {
         <div className="truncate text-sm font-medium text-[hsl(var(--ink))]">
           {doc.file_name}
         </div>
-        <div className="flex items-center gap-2 text-xs text-[hsl(var(--muted-ink))]">
-          {doc.description && <span className="truncate max-w-[160px]">{doc.description}</span>}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[hsl(var(--muted-ink))]">
+          {(doc.vendor_name || doc.description) && (
+            <span className="truncate max-w-[200px] font-medium text-[hsl(var(--ink)/0.7)]">
+              {doc.vendor_name || doc.description}
+            </span>
+          )}
+          {doc.paid_date && (
+            <span>{new Date(doc.paid_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+          )}
+          {doc.amount != null && (
+            <span className="font-medium">
+              {doc.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          )}
           {doc.document_number && <span>#{doc.document_number}</span>}
           {doc.size_bytes && <span>{formatSize(doc.size_bytes)}</span>}
           {doc.expense_type && (
@@ -220,7 +235,10 @@ export default function Documentos() {
           invoice_path,
           invoice_size_bytes,
           created_at,
-          projects!inner(id, name)
+          paid_date,
+          amount,
+          projects!inner(id, name),
+          vendors(name)
         `)
         .not("invoice_file_name", "is", null)
         .is("deleted_at", null)
@@ -241,6 +259,9 @@ export default function Documentos() {
         description: tx.description,
         document_number: tx.document_number,
         expense_type: tx.expense_type,
+        vendor_name: tx.vendors?.name || null,
+        paid_date: tx.paid_date || null,
+        amount: tx.amount != null ? Number(tx.amount) : null,
       })) as DocEntry[];
     },
   });
@@ -260,7 +281,7 @@ export default function Documentos() {
           size_bytes,
           mime_type,
           created_at,
-          transactions!inner(description, document_number, expense_type, projects!inner(name))
+          transactions!inner(description, document_number, expense_type, paid_date, amount, projects!inner(name), vendors(name))
         `)
         .order("created_at", { ascending: false })
         .limit(2000);
@@ -279,6 +300,9 @@ export default function Documentos() {
         description: att.transactions?.description,
         document_number: att.transactions?.document_number,
         expense_type: att.transactions?.expense_type,
+        vendor_name: att.transactions?.vendors?.name || null,
+        paid_date: att.transactions?.paid_date || null,
+        amount: att.transactions?.amount != null ? Number(att.transactions.amount) : null,
       })) as DocEntry[];
     },
   });

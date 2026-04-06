@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { ExecucaoLancamentosDialog } from "@/components/execucao/ExecucaoLancamentosDialog";
 import { BalanceteTabs } from "@/components/balancete/BalanceteTabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatStartMonth } from "@/lib/fileUtils";
 
 function clampInt(v: number, min: number, max: number) {
   if (!Number.isFinite(v)) return min;
@@ -283,12 +282,21 @@ export default function ExecucaoProjeto() {
               <TableRow className="bg-gray-50">
                 <TableHead className="min-w-[110px] font-bold text-[hsl(var(--ink))]">Código</TableHead>
                 <TableHead className="min-w-[320px] font-bold text-[hsl(var(--ink))]">Descrição</TableHead>
-                <TableHead className="min-w-[110px] font-bold text-[hsl(var(--ink))]">Mês inicial</TableHead>
-                {monthCols.map((m) => (
-                  <TableHead key={m.idx} className="min-w-[120px] text-right font-bold text-[hsl(var(--ink))]">
-                    {m.label}
-                  </TableHead>
-                ))}
+                {monthCols.map((m) => {
+                  const budgetStart = (budgetQuery.data as any)?.start_month as string | null | undefined;
+                  const ref = monthRefFromIndex(m.idx, budgetStart);
+                  const [ry, rm] = ref.split("-").map(Number);
+                  const nomes = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+                  const calLabel = budgetStart ? `${nomes[rm - 1]}/${ry}` : null;
+                  return (
+                    <TableHead key={m.idx} className="min-w-[120px] text-right font-bold text-[hsl(var(--ink))]">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>{m.label}</span>
+                        {calLabel && <span className="text-xs font-normal text-[hsl(var(--muted-ink))]">{calLabel}</span>}
+                      </div>
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Planejado</TableHead>
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Executado</TableHead>
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Saldo</TableHead>
@@ -304,7 +312,6 @@ export default function ExecucaoProjeto() {
                     <TableRow key={cat.id} className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">{cat.code}</TableCell>
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">{cat.name}</TableCell>
-                      <TableCell className="text-sm text-[hsl(var(--muted-ink))]">{formatStartMonth((budgetQuery.data as any)?.start_month)}</TableCell>
                       {monthCols.map((m) => (
                         <TableCell key={m.idx} />
                       ))}
@@ -329,16 +336,6 @@ export default function ExecucaoProjeto() {
                         <TableRow key={l.id} className={cn(lineIdx % 2 === 1 ? "!bg-blue-50" : "bg-white", "hover:!bg-blue-100 transition-colors")}>
                           <TableCell className="font-medium text-[hsl(var(--ink))]">{l.code}</TableCell>
                           <TableCell className="text-[hsl(var(--ink))]">{l.name}</TableCell>
-                          <TableCell className="text-sm text-[hsl(var(--muted-ink))]">
-                            {(() => {
-                              const lineStartMonth = Number(l.start_month ?? 1);
-                              const budgetStart = (budgetQuery.data as any)?.start_month;
-                              const monthRef = monthRefFromIndex(lineStartMonth, budgetStart);
-                              const [year, month] = monthRef.split("-").map(Number);
-                              const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-                              return `${months[month - 1]}/${year}`;
-                            })()}
-                          </TableCell>
 
                           {monthCols.map((m) => {
                             const mk = monthRefFromIndex(m.idx, (budgetQuery.data as any)?.start_month);

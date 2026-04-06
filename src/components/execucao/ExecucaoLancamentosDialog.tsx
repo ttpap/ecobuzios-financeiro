@@ -148,6 +148,25 @@ export function ExecucaoLancamentosDialog({
           </DialogHeader>
 
           <div className="grid gap-4">
+            <TransactionListCard
+              transactions={transactions}
+              attachments={attachments}
+              editing={form.editing}
+              actionTxId={form.actionTxId}
+              projectId={projectId}
+              onEditClick={(t) => form.setActionTxId(t.id)}
+              onCloneClick={startCloneTx}
+              onEditCompletelyClick={startEditCompletely}
+              onCancelAction={() => form.setActionTxId(null)}
+              onDeleteClick={(id) => deleteTx.mutate(id)}
+              onRemoveAttachment={(a, tx) => removeAttachment.mutate({ attachment: a, tx })}
+              onGetSignedUrl={(path) => signedUrl.mutateAsync(path)}
+              onPreviewOpen={(url) => {
+                form.setPreviewUrl(url);
+                form.setPreviewOpen(true);
+              }}
+            />
+
             <TransactionFormCard
               monthTotal={monthTotal}
               editing={form.editing}
@@ -199,25 +218,6 @@ export function ExecucaoLancamentosDialog({
               isSaving={createTx.isPending || updateTx.isPending}
               currentMonthIndex={form.currentMonthIndex}
               lineId={line?.id}
-            />
-
-            <TransactionListCard
-              transactions={transactions}
-              attachments={attachments}
-              editing={form.editing}
-              actionTxId={form.actionTxId}
-              projectId={projectId}
-              onEditClick={(t) => form.setActionTxId(t.id)}
-              onCloneClick={startCloneTx}
-              onEditCompletelyClick={startEditCompletely}
-              onCancelAction={() => form.setActionTxId(null)}
-              onDeleteClick={(id) => deleteTx.mutate(id)}
-              onRemoveAttachment={(a, tx) => removeAttachment.mutate({ attachment: a, tx })}
-              onGetSignedUrl={(path) => signedUrl.mutateAsync(path)}
-              onPreviewOpen={(url) => {
-                form.setPreviewUrl(url);
-                form.setPreviewOpen(true);
-              }}
             />
           </div>
         </DialogContent>

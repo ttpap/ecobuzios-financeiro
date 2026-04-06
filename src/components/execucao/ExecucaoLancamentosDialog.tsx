@@ -229,7 +229,11 @@ export function ExecucaoLancamentosDialog({
             <DialogTitle>Visualizar nota fiscal</DialogTitle>
           </DialogHeader>
           <div className="h-[75vh] overflow-hidden rounded-2xl border bg-white">
-            <iframe title="Nota fiscal" src={form.previewUrl} className="h-full w-full" />
+            {/\.(png|jpe?g|gif|webp)/i.test(form.previewUrl.split("?")[0]) ? (
+              <img src={form.previewUrl} alt="Nota fiscal" className="h-full w-full object-contain" />
+            ) : (
+              <iframe title="Nota fiscal" src={form.previewUrl} className="h-full w-full" />
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -238,7 +238,7 @@ export default function Documentos() {
           paid_date,
           amount,
           projects!inner(id, name),
-          vendors(name)
+          vendors!vendor_id(name)
         `)
         .not("invoice_file_name", "is", null)
         .is("deleted_at", null)
@@ -281,7 +281,7 @@ export default function Documentos() {
           size_bytes,
           mime_type,
           created_at,
-          transactions!inner(description, document_number, expense_type, paid_date, amount, projects!inner(name), vendors(name))
+          transactions!inner(description, document_number, expense_type, paid_date, amount, projects!inner(name), vendors!vendor_id(name))
         `)
         .order("created_at", { ascending: false })
         .limit(2000);

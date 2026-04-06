@@ -91,6 +91,14 @@ export function ExecucaoLancamentosDialog({
     form.setActionTxId(null);
   }, [open, monthIndex, line?.id]);
 
+  // Auto-fill form when there is exactly one existing transaction
+  useEffect(() => {
+    if (!open || form.editing) return;
+    if (transactions.length === 1) {
+      startEditCompletely(transactions[0]);
+    }
+  }, [transactions.length, open]);
+
   function handleSave() {
     const mutationParams = {
       vendor: form.vendor,

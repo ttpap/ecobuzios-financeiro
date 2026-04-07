@@ -153,7 +153,10 @@ export default function ExecucaoProjeto() {
 
     for (const t of txQuery.data ?? []) {
       const lineId = String((t as any).budget_line_id);
-      const mk = String((t as any).month_ref);
+      const rawDate = (t as any).date as string | undefined;
+      const mk = rawDate && /^\d{4}-\d{2}/.test(rawDate)
+        ? `${rawDate.slice(0, 7)}-01`
+        : String((t as any).month_ref);
       const amount = Number((t as any).amount ?? 0);
 
       total += amount;

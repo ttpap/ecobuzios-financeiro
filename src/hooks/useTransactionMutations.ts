@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { BudgetLine, Transaction, TransactionAttachment, Vendor } from "@/lib/supabaseTypes";
 import { toast } from "sonner";
-import { safeFileName, fileToLowResPdf } from "@/lib/fileUtils";
+import { safeFileName, fileToLowResPdf, monthRefFromIndex } from "@/lib/fileUtils";
 import { parsePtBrMoneyToNumber } from "@/lib/money";
 
 async function fetchVendorById(vendorId: string): Promise<Vendor | null> {
@@ -19,6 +19,7 @@ export function useTransactionMutations({
   line,
   monthRef,
   editingLineId,
+  budgetStartMonth,
   onChangeSelectedLineId,
 }: {
   open: boolean;
@@ -27,6 +28,7 @@ export function useTransactionMutations({
   line: BudgetLine | null;
   monthRef: string;
   editingLineId: string;
+  budgetStartMonth?: string | null;
   onChangeSelectedLineId?: (lineId: string) => void;
 }) {
   const queryClient = useQueryClient();
@@ -209,6 +211,7 @@ export function useTransactionMutations({
           budget_line_id: line.id,
           date: paidDate,
           month_index: currentMonthIndex,
+          month_ref: monthRefFromIndex(currentMonthIndex, budgetStartMonth),
           amount: parsedAmount,
           description: line.name,
           document_number: documentNumber.trim() || null,
@@ -306,6 +309,7 @@ export function useTransactionMutations({
           amount: parsedAmount,
           notes: notes.trim() || null,
           month_index: editingMonthIndex,
+          month_ref: monthRefFromIndex(editingMonthIndex, budgetStartMonth),
         } as any)
         .eq("id", editing.id)
         .select("*")

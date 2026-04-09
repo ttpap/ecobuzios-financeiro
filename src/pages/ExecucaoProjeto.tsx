@@ -151,12 +151,23 @@ export default function ExecucaoProjeto() {
     const missingInvoice = new Set<string>(); // key: lineId__monthRef
     let total = 0;
 
+    const budgetStart = (budgetQuery.data as any)?.start_month as string | null | undefined;
+
     for (const t of txQuery.data ?? []) {
       const lineId = String((t as any).budget_line_id);
+      const monthRef = (t as any).month_ref as string | undefined;
+      const monthIndex = Number((t as any).month_index);
       const rawDate = (t as any).date as string | undefined;
-      const mk = rawDate && /^\d{4}-\d{2}/.test(rawDate)
-        ? `${rawDate.slice(0, 7)}-01`
-        : String((t as any).month_ref);
+
+      // Prefer month_ref (set by new transactions), then compute from month_index, then fall back to date
+      const mk = monthRef
+        ? String(monthRef)
+        : Number.isFinite(monthIndex) && monthIndex > 0
+          ? monthRefFromIndex(monthIndex, budgetStart)
+          : rawDate && /^\d{4}-\d{2}/.test(rawDate)
+            ? `${rawDate.slice(0, 7)}-01`
+            : "";
+
       const amount = Number((t as any).amount ?? 0);
 
       total += amount;
@@ -169,7 +180,7 @@ export default function ExecucaoProjeto() {
     }
 
     return { total, byLine, byMonth, byLineMonth, missingInvoice };
-  }, [txQuery.data]);
+  }, [txQuery.data, budgetQuery.data]);
 
   const plannedAgg = useMemo(() => {
     const byLineMonth = new Map<string, number>();

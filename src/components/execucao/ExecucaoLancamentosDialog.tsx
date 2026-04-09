@@ -51,6 +51,7 @@ export function ExecucaoLancamentosDialog({
     line,
     monthRef,
     editingLineId: form.editingLineId,
+    budgetStartMonth,
     onChangeSelectedLineId,
   });
 

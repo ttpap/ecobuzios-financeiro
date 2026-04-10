@@ -7,8 +7,19 @@ import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?worker";
 
 (pdfjsLib as any).GlobalWorkerOptions.workerPort = new (pdfWorker as any)();
 
+export async function extractPdfTextFromUrl(url: string): Promise<string> {
+  const resp = await fetch(url);
+  const buffer = await resp.arrayBuffer();
+  const data = new Uint8Array(buffer);
+  return _extractFromData(data);
+}
+
 export async function extractPdfText(file: File): Promise<string> {
   const data = new Uint8Array(await file.arrayBuffer());
+  return _extractFromData(data);
+}
+
+async function _extractFromData(data: Uint8Array): Promise<string> {
   const doc = await (pdfjsLib as any).getDocument({ data }).promise;
 
   let out = "";

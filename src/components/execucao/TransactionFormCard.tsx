@@ -1,5 +1,6 @@
 import type { BudgetLine, Transaction, Vendor } from "@/lib/supabaseTypes";
 import type { PaymentMethod } from "@/lib/fileUtils";
+import type { InvoiceVerificationResult, FieldStatus } from "@/lib/invoiceVerifier";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,8 @@ import {
 } from "@/components/ui/select";
 import { formatBRL, formatPtBrDecimal, parsePtBrMoneyToNumber } from "@/lib/money";
 import { VendorCombobox } from "@/components/execucao/VendorCombobox";
-import { FileUp, Pencil, X } from "lucide-react";
+import { FileUp, Pencil, X, ScanSearch, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TransactionFormCardProps {
   monthTotal: number;
@@ -47,6 +49,10 @@ interface TransactionFormCardProps {
   isSaving: boolean;
   currentMonthIndex: number;
   lineId: string | undefined;
+  hasAttachment?: boolean;
+  onVerifyInvoice?: () => void;
+  isVerifying?: boolean;
+  verificationResult?: InvoiceVerificationResult | null;
 }
 
 export function TransactionFormCard({
@@ -81,8 +87,30 @@ export function TransactionFormCard({
   isSaving,
   currentMonthIndex,
   lineId,
+  hasAttachment,
+  onVerifyInvoice,
+  isVerifying,
+  verificationResult,
 }: TransactionFormCardProps) {
   const canEdit = editing != null;
+
+  function statusIcon(s: FieldStatus) {
+    if (s === "ok") return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+    if (s === "divergente") return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    return <HelpCircle className="h-4 w-4 text-yellow-500" />;
+  }
+
+  function statusLabel(s: FieldStatus) {
+    if (s === "ok") return "Confere";
+    if (s === "divergente") return "Divergente";
+    return "Não encontrado na NF";
+  }
+
+  function statusClass(s: FieldStatus) {
+    if (s === "ok") return "text-green-700";
+    if (s === "divergente") return "text-red-600 font-semibold";
+    return "text-yellow-600";
+  }
 
   return (
     <Card className="rounded-3xl border bg-white p-4">
@@ -239,24 +267,111 @@ export function TransactionFormCard({
           </div>
         </div>
 
-        {!canEdit ? (
-          <Button
-            onClick={onSave}
-            disabled={isSaving}
-            className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
+        <div className="flex flex-wrap gap-2">
+          {!canEdit ? (
+            <Button
+              onClick={onSave}
+              disabled={isSaving}
+              className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              Salvar lançamento
+            </Button>
+          ) : (
+            <Button
+              onClick={onSave}
+              disabled={isSaving}
+              className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Salvar alterações
+            </Button>
+          )}
+
+          {canEdit && hasAttachment && onVerifyInvoice && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onVerifyInvoice}
+              disabled={isVerifying}
+              className="rounded-full"
+            >
+              <ScanSearch className="mr-2 h-4 w-4" />
+              {isVerifying ? "Verificando NF…" : "Verificar nota fiscal"}
+            </Button>
+          )}
+        </div>
+
+        {verificationResult && (
+          <div
+            className={cn(
+              "rounded-2xl border p-4",
+              verificationResult.totalDivergencias > 0
+                ? "border-red-200 bg-red-50"
+                : "border-green-200 bg-green-50"
+            )}
           >
-            <FileUp className="mr-2 h-4 w-4" />
-            Salvar lançamento
-          </Button>
-        ) : (
-          <Button
-            onClick={onSave}
-            disabled={isSaving}
-            className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
-          >
-            <Pencil className="mr-2 h-4 w-4" />
-            Salvar alterações
-          </Button>
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              {verificationResult.totalDivergencias > 0 ? (
+                <>
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-red-700">
+                    {verificationResult.totalDivergencias} divergência(s) encontrada(s) com a nota fiscal
+                  </span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-green-700">Dados conferem com a nota fiscal</span>
+                </>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              {[
+                {
+                  label: "Valor",
+                  field: verificationResult.valor,
+                  extras: verificationResult.valor.extraidos.map((n) =>
+                    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                  ),
+                },
+                {
+                  label: "Data de pagamento",
+                  field: verificationResult.dataPagamento,
+                  extras: verificationResult.dataPagamento.extraidas.map((d) => {
+                    const [y, m, day] = d.split("-");
+                    return `${day}/${m}/${y}`;
+                  }),
+                },
+                {
+                  label: "CNPJ do fornecedor",
+                  field: verificationResult.cnpj,
+                  extras: verificationResult.cnpj.extraidos.map((c) =>
+                    c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+                  ),
+                },
+                {
+                  label: "Número do documento",
+                  field: verificationResult.numeroDocumento,
+                  extras: verificationResult.numeroDocumento.extraidos,
+                },
+              ].map(({ label, field, extras }) => (
+                <div key={label} className="flex items-start gap-2 text-xs">
+                  {statusIcon(field.status)}
+                  <div>
+                    <span className="font-medium text-[hsl(var(--ink))]">{label}: </span>
+                    <span className={statusClass(field.status)}>{statusLabel(field.status)}</span>
+                    {extras.length > 0 && field.status !== "ok" && (
+                      <span className="ml-1 text-[hsl(var(--muted-ink))]">
+                        (NF contém: {extras.slice(0, 3).join(", ")})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </Card>

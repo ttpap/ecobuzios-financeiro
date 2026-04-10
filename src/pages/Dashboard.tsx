@@ -265,9 +265,6 @@ export default function Dashboard() {
                   Acompanhe o total planejado, execução e saldo disponível.
                 </p>
               </div>
-              <Button asChild variant="outline" className="rounded-full">
-                <Link to="/import">Importar orçamento</Link>
-              </Button>
             </div>
           </div>
 

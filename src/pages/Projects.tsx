@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { Archive, FolderKanban, Pencil, Plus, Table2, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProjectLogoUploader } from "@/components/projects/ProjectLogoUploader";
+import { ProjectStampUploader } from "@/components/projects/ProjectStampUploader";
 
 function clampInt(v: number, min: number, max: number) {
   if (!Number.isFinite(v)) return min;
@@ -363,8 +364,9 @@ export default function Projects() {
                         <div className="mt-1 text-sm text-[hsl(var(--muted-ink))]">{p.description}</div>
                       ) : null}
 
-                      <div className="mt-4">
+                      <div className="mt-4 grid gap-4">
                         <ProjectLogoUploader project={p as any} />
+                        <ProjectStampUploader project={p as any} />
                       </div>
                     </div>
 

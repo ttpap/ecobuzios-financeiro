@@ -1,6 +1,17 @@
+import { useState } from "react";
 import type { Transaction, TransactionAttachment } from "@/lib/supabaseTypes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatBRL } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { Download, Trash2, Eye, Pencil } from "lucide-react";
@@ -37,7 +48,10 @@ export function TransactionListCard({
   onGetSignedUrl,
   onPreviewOpen,
 }: TransactionListCardProps) {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   return (
+    <>
     <Card className="rounded-3xl border bg-white p-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div className="text-sm font-semibold text-[hsl(var(--ink))]">Lançamentos do mês</div>
@@ -165,7 +179,12 @@ export function TransactionListCard({
                   })()}
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="rounded-full" onClick={() => onDeleteClick(t.id)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                onClick={() => setPendingDeleteId(t.id)}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -179,5 +198,29 @@ export function TransactionListCard({
         </div>
       </div>
     </Card>
+
+    <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir lançamento</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 hover:bg-red-700"
+            onClick={() => {
+              if (pendingDeleteId) onDeleteClick(pendingDeleteId);
+              setPendingDeleteId(null);
+            }}
+          >
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

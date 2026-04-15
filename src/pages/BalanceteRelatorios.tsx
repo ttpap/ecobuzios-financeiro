@@ -150,18 +150,24 @@ export default function BalanceteRelatorios() {
                 className="rounded-full"
                 onClick={mergeInvoicesPdf}
                 disabled={!notasRows.length}
+                title={project?.stamp_path ? "Visualizar com carimbo aplicado" : "Visualizar PDF"}
               >
                 <FileText className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Visualizar</span>
+                <span className="hidden sm:inline">
+                  {project?.stamp_path ? "Visualizar com Carimbo" : "Visualizar"}
+                </span>
               </Button>
               <Button
                 variant="outline"
                 className="rounded-full"
                 onClick={exportNotasConsolidadasPdf}
                 disabled={!notasRows.length}
+                title={project?.stamp_path ? "Baixar PDF com carimbo aplicado" : "Baixar PDF"}
               >
                 <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Baixar PDF</span>
+                <span className="hidden sm:inline">
+                  {project?.stamp_path ? "Baixar com Carimbo" : "Baixar PDF"}
+                </span>
               </Button>
               <Button variant="outline" className="rounded-full" onClick={handlePrint}>
                 <Printer className="h-4 w-4 sm:mr-2" />

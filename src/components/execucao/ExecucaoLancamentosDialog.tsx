@@ -302,6 +302,7 @@ export function ExecucaoLancamentosDialog({
               onVerifyInvoice={verifyCurrentInvoice}
               isVerifying={isVerifying}
               verificationResult={verificationResult}
+              onDeleteClick={form.editing ? () => deleteTx.mutate(form.editing!.id) : undefined}
             />
 
             <TransactionListCard

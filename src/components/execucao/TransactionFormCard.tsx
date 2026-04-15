@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { BudgetLine, Transaction, Vendor } from "@/lib/supabaseTypes";
 import type { PaymentMethod } from "@/lib/fileUtils";
 import type { InvoiceVerificationResult, FieldStatus } from "@/lib/invoiceVerifier";
@@ -5,6 +6,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -14,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { formatBRL, formatPtBrDecimal, parsePtBrMoneyToNumber } from "@/lib/money";
 import { VendorCombobox } from "@/components/execucao/VendorCombobox";
-import { FileUp, Pencil, X, ScanSearch, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
+import { FileUp, Pencil, Trash2, X, ScanSearch, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TransactionFormCardProps {
@@ -53,6 +64,7 @@ interface TransactionFormCardProps {
   onVerifyInvoice?: () => void;
   isVerifying?: boolean;
   verificationResult?: InvoiceVerificationResult | null;
+  onDeleteClick?: () => void;
 }
 
 export function TransactionFormCard({
@@ -91,8 +103,10 @@ export function TransactionFormCard({
   onVerifyInvoice,
   isVerifying,
   verificationResult,
+  onDeleteClick,
 }: TransactionFormCardProps) {
   const canEdit = editing != null;
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function statusIcon(s: FieldStatus) {
     if (s === "ok") return <CheckCircle2 className="h-4 w-4 text-green-600" />;
@@ -113,6 +127,7 @@ export function TransactionFormCard({
   }
 
   return (
+    <>
     <Card className="rounded-3xl border bg-white p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -300,6 +315,18 @@ export function TransactionFormCard({
               {isVerifying ? "Verificando NF…" : "Verificar nota fiscal"}
             </Button>
           )}
+
+          {canEdit && onDeleteClick && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmDelete(true)}
+              className="rounded-full text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir lançamento
+            </Button>
+          )}
         </div>
 
         {verificationResult && (
@@ -375,5 +402,26 @@ export function TransactionFormCard({
         )}
       </div>
     </Card>
+
+    <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir lançamento</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 hover:bg-red-700"
+            onClick={() => { setConfirmDelete(false); onDeleteClick?.(); }}
+          >
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

@@ -49,10 +49,45 @@ export function useReportExports({
   rubricasRows,
   lancamentosRows,
   notasRows,
+  project,
   plannedTotal,
   executedTotal,
 }: UseReportExportsProps) {
   const printRef = useRef<HTMLDivElement | null>(null);
+
+  // Busca a imagem do carimbo do projeto e aplica em todas as páginas do PDF
+  async function applyStampToDoc(merged: any) {
+    if (!project?.stamp_path) return;
+
+    const { data, error } = await supabase.storage
+      .from("project-stamps")
+      .createSignedUrl(project.stamp_path, 60);
+    if (error || !data?.signedUrl) return;
+
+    const res = await fetch(data.signedUrl);
+    if (!res.ok) return;
+    const stampBytes = new Uint8Array(await res.arrayBuffer());
+
+    const isPng = (project.stamp_file_name ?? "").toLowerCase().endsWith(".png");
+    const stampImg = isPng
+      ? await merged.embedPng(stampBytes)
+      : await merged.embedJpg(stampBytes);
+
+    const STAMP_W = 180;
+    const STAMP_H = STAMP_W * (stampImg.height / stampImg.width);
+    const MARGIN = 20;
+
+    for (const page of merged.getPages()) {
+      const { width } = page.getSize();
+      page.drawImage(stampImg, {
+        x: width - STAMP_W - MARGIN,
+        y: MARGIN,
+        width: STAMP_W,
+        height: STAMP_H,
+        opacity: 0.92,
+      });
+    }
+  }
 
   const exportRubricasPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
@@ -245,6 +280,8 @@ export function useReportExports({
       pages.forEach((p) => merged.addPage(p));
     }
 
+    await applyStampToDoc(merged);
+
     const out = await merged.save();
     const blob = new Blob([out as any], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
@@ -271,6 +308,8 @@ export function useReportExports({
         const pages = await merged.copyPages(src, src.getPageIndices());
         pages.forEach((p) => merged.addPage(p));
       }
+
+      await applyStampToDoc(merged);
 
       const out = await merged.save();
       const blob = new Blob([out as any], { type: "application/pdf" });

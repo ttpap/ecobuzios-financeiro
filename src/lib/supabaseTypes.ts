@@ -17,6 +17,10 @@ export type Project = {
   logo_file_name?: string | null;
   logo_path?: string | null;
   logo_size_bytes?: number | null;
+
+  stamp_path?: string | null;
+  stamp_file_name?: string | null;
+  stamp_size_bytes?: number | null;
 };
 
 export type Budget = {

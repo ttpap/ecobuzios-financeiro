@@ -85,7 +85,7 @@ export function useReportExports({
         y: MARGIN,
         width: STAMP_W,
         height: STAMP_H,
-        opacity: 0.92,
+        opacity: 0.38,
       });
     }
   }

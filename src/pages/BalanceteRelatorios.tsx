@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { ReportHeader } from "@/components/reports/ReportHeader";
-import { Download, FileText, Printer } from "lucide-react";
+import { Download, Eye, FileText, Printer } from "lucide-react";
 import { useReportData } from "@/hooks/useReportData";
 import { useReportExports } from "@/hooks/useReportExports";
 import { formatDateBR } from "@/lib/reportBuilders";
@@ -32,6 +32,7 @@ export default function BalanceteRelatorios() {
     exportLancamentosPdf,
     exportRubricasXlsx,
     exportLancamentosXlsx,
+    viewSingleInvoicePdf,
     mergeInvoicesPdf,
     exportNotasConsolidadasPdf,
   } = useReportExports({ rubricasRows, lancamentosRows, notasRows, project, budget, plannedTotal, executedTotal });
@@ -333,11 +334,23 @@ export default function BalanceteRelatorios() {
                     key={`${n.invoice_path}-${idx}`}
                     className="flex items-center justify-between rounded-2xl border bg-[hsl(var(--app-bg))] p-3"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-[hsl(var(--ink))]">{n.invoice_file_name}</div>
                       <div className="mt-1 text-xs text-[hsl(var(--muted-ink))]">Data NF: {formatDateBR(n.due_date)}</div>
                     </div>
-                    <div className="text-xs font-medium text-[hsl(var(--muted-ink))]">#{idx + 1}</div>
+                    <div className="flex items-center gap-3 pl-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-full px-3 text-xs"
+                        onClick={() => viewSingleInvoicePdf(n)}
+                        title="Visualizar esta nota"
+                      >
+                        <Eye className="h-3.5 w-3.5 sm:mr-1.5" />
+                        <span className="hidden sm:inline">Visualizar</span>
+                      </Button>
+                      <div className="text-xs font-medium text-[hsl(var(--muted-ink))]">#{idx + 1}</div>
+                    </div>
                   </div>
                 ))}
 

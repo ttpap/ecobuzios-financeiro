@@ -264,6 +264,37 @@ export function useReportExports({
     );
   };
 
+  const viewSingleInvoicePdf = async (inv: NotaRow) => {
+    const tid = toast.loading("Abrindo nota…");
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const { data, error } = await supabase.storage
+        .from("invoices")
+        .createSignedUrl(inv.invoice_path, 60);
+      if (error) throw error;
+
+      const res = await fetch(data.signedUrl);
+      if (!res.ok) throw new Error(`Falha ao baixar nota: ${inv.invoice_file_name}`);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+
+      const src = await PDFDocument.load(bytes);
+      const merged = await PDFDocument.create();
+      const pages = await merged.copyPages(src, src.getPageIndices());
+      pages.forEach((p) => merged.addPage(p));
+
+      await applyStampToDoc(merged);
+
+      const out = await merged.save();
+      const blob = new Blob([out as any], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      toast.dismiss(tid);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: unknown) {
+      toast.dismiss(tid);
+      toast.error(e instanceof Error ? e.message : "Falha ao abrir nota");
+    }
+  };
+
   const mergeInvoicesPdf = async () => {
     if (!notasRows.length) return;
     const tid = toast.loading("Gerando visualização…");
@@ -346,6 +377,7 @@ export function useReportExports({
     exportLancamentosPdf,
     exportRubricasXlsx,
     exportLancamentosXlsx,
+    viewSingleInvoicePdf,
     mergeInvoicesPdf,
     exportNotasConsolidadasPdf,
   };

@@ -3,11 +3,12 @@ import { useAppStore } from "@/lib/appStore";
 import { BalanceteTabs } from "@/components/balancete/BalanceteTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { ReportHeader } from "@/components/reports/ReportHeader";
-import { Download, Eye, FileText, Printer } from "lucide-react";
+import { Download, Eye, FileText, X } from "lucide-react";
 import { useReportData } from "@/hooks/useReportData";
 import { useReportExports } from "@/hooks/useReportExports";
 import { formatDateBR } from "@/lib/reportBuilders";
@@ -15,6 +16,8 @@ import { formatDateBR } from "@/lib/reportBuilders";
 export default function BalanceteRelatorios() {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [report, setReport] = useState<"rubricas" | "lancamentos" | "notas">("rubricas");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const {
     project,
@@ -24,12 +27,14 @@ export default function BalanceteRelatorios() {
     notasRows,
     plannedTotal,
     executedTotal,
-  } = useReportData();
+  } = useReportData({ dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
 
   const {
     printRef,
     exportRubricasPdf,
+    previewRubricasPdf,
     exportLancamentosPdf,
+    previewLancamentosPdf,
     exportRubricasXlsx,
     exportLancamentosXlsx,
     viewSingleInvoicePdf,
@@ -37,9 +42,8 @@ export default function BalanceteRelatorios() {
     exportNotasConsolidadasPdf,
   } = useReportExports({ rubricasRows, lancamentosRows, notasRows, project, budget, plannedTotal, executedTotal });
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const hasFilter = dateFrom || dateTo;
+  const clearFilter = () => { setDateFrom(""); setDateTo(""); };
 
   if (!activeProjectId) {
     return (
@@ -68,115 +72,126 @@ export default function BalanceteRelatorios() {
     <div className="grid gap-6">
       <BalanceteTabs />
 
-      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-3">
-        <div className="flex min-w-0 flex-wrap gap-2">
-          <Button
-            variant={report === "rubricas" ? "default" : "outline"}
-            className={cn(
-              "rounded-full",
-              report === "rubricas"
-                ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
-                : ""
-            )}
-            onClick={() => setReport("rubricas")}
-          >
-            <span className="sm:hidden">Rubricas</span>
-            <span className="hidden sm:inline">Relatório de Rubricas</span>
-          </Button>
-          <Button
-            variant={report === "lancamentos" ? "default" : "outline"}
-            className={cn(
-              "rounded-full",
-              report === "lancamentos"
-                ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
-                : ""
-            )}
-            onClick={() => setReport("lancamentos")}
-          >
-            <span className="sm:hidden">Lançamentos</span>
-            <span className="hidden sm:inline">Relatório de Lançamentos</span>
-          </Button>
-          <Button
-            variant={report === "notas" ? "default" : "outline"}
-            className={cn(
-              "rounded-full",
-              report === "notas" ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]" : ""
-            )}
-            onClick={() => setReport("notas")}
-          >
-            <span className="sm:hidden">Notas</span>
-            <span className="hidden sm:inline">Relatório de Notas Fiscais</span>
-          </Button>
-        </div>
+      {/* Seletor de relatório */}
+      <div className="flex min-w-0 flex-wrap gap-2">
+        <Button
+          variant={report === "rubricas" ? "default" : "outline"}
+          className={cn("rounded-full", report === "rubricas" ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]" : "")}
+          onClick={() => { setReport("rubricas"); clearFilter(); }}
+        >
+          <span className="sm:hidden">Rubricas</span>
+          <span className="hidden sm:inline">Relatório de Rubricas</span>
+        </Button>
+        <Button
+          variant={report === "lancamentos" ? "default" : "outline"}
+          className={cn("rounded-full", report === "lancamentos" ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]" : "")}
+          onClick={() => setReport("lancamentos")}
+        >
+          <span className="sm:hidden">Lançamentos</span>
+          <span className="hidden sm:inline">Relatório de Lançamentos</span>
+        </Button>
+        <Button
+          variant={report === "notas" ? "default" : "outline"}
+          className={cn("rounded-full", report === "notas" ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]" : "")}
+          onClick={() => setReport("notas")}
+        >
+          <span className="sm:hidden">Notas</span>
+          <span className="hidden sm:inline">Relatório de Notas Fiscais</span>
+        </Button>
+      </div>
 
-        <div className="flex flex-wrap gap-2 md:ml-auto">
-          {report === "rubricas" && (
-            <>
-              <Button variant="outline" className="rounded-full" onClick={exportRubricasPdf}>
-                <FileText className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">PDF</span>
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={exportRubricasXlsx}>
-                <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Excel</span>
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={handlePrint}>
-                <Printer className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Imprimir</span>
-              </Button>
-            </>
-          )}
-
-          {report === "lancamentos" && (
-            <>
-              <Button variant="outline" className="rounded-full" onClick={exportLancamentosPdf}>
-                <FileText className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">PDF</span>
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={exportLancamentosXlsx}>
-                <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Excel</span>
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={handlePrint}>
-                <Printer className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Imprimir</span>
-              </Button>
-            </>
-          )}
-
-          {report === "notas" && (
-            <>
-              <Button
-                variant="outline"
-                className="rounded-full"
-                onClick={mergeInvoicesPdf}
-                disabled={!notasRows.length}
-                title={project?.stamp_path ? "Visualizar com carimbo aplicado" : "Visualizar PDF"}
-              >
-                <FileText className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">
-                  {project?.stamp_path ? "Visualizar com Carimbo" : "Visualizar"}
-                </span>
-              </Button>
-              <Button
-                variant="outline"
-                className="rounded-full"
-                onClick={exportNotasConsolidadasPdf}
-                disabled={!notasRows.length}
-                title={project?.stamp_path ? "Baixar PDF com carimbo aplicado" : "Baixar PDF"}
-              >
-                <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">
-                  {project?.stamp_path ? "Baixar com Carimbo" : "Baixar PDF"}
-                </span>
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={handlePrint}>
-                <Printer className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Imprimir</span>
-              </Button>
-            </>
+      {/* Filtro por período — visível apenas em lançamentos e notas */}
+      {(report === "lancamentos" || report === "notas") && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-[hsl(var(--muted-ink))]">Período:</span>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="h-8 w-auto rounded-full px-3 text-xs"
+            placeholder="De"
+          />
+          <span className="text-xs text-[hsl(var(--muted-ink))]">até</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="h-8 w-auto rounded-full px-3 text-xs"
+            placeholder="Até"
+          />
+          {hasFilter && (
+            <Button variant="ghost" size="sm" className="h-8 rounded-full px-2" onClick={clearFilter}>
+              <X className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Limpar filtro</span>
+            </Button>
           )}
         </div>
+      )}
+
+      {/* Botões de ação */}
+      <div className="flex flex-wrap gap-2">
+        {report === "rubricas" && (
+          <>
+            <Button variant="outline" className="rounded-full" onClick={previewRubricasPdf}>
+              <Eye className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Pré-visualizar</span>
+            </Button>
+            <Button variant="outline" className="rounded-full" onClick={exportRubricasPdf}>
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
+            <Button variant="outline" className="rounded-full" onClick={exportRubricasXlsx}>
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Excel</span>
+            </Button>
+          </>
+        )}
+
+        {report === "lancamentos" && (
+          <>
+            <Button variant="outline" className="rounded-full" onClick={previewLancamentosPdf}>
+              <Eye className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Pré-visualizar</span>
+            </Button>
+            <Button variant="outline" className="rounded-full" onClick={exportLancamentosPdf}>
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
+            <Button variant="outline" className="rounded-full" onClick={exportLancamentosXlsx}>
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Excel</span>
+            </Button>
+          </>
+        )}
+
+        {report === "notas" && (
+          <>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={mergeInvoicesPdf}
+              disabled={!notasRows.length}
+              title={project?.stamp_path ? "Pré-visualizar com carimbo aplicado" : "Pré-visualizar PDF"}
+            >
+              <Eye className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">
+                {project?.stamp_path ? "Pré-visualizar com Carimbo" : "Pré-visualizar"}
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={exportNotasConsolidadasPdf}
+              disabled={!notasRows.length}
+              title={project?.stamp_path ? "Baixar PDF com carimbo aplicado" : "Baixar PDF"}
+            >
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">
+                {project?.stamp_path ? "Baixar com Carimbo" : "Baixar PDF"}
+              </span>
+            </Button>
+          </>
+        )}
       </div>
 
       <div ref={printRef} className="grid gap-6">
@@ -211,52 +226,22 @@ export default function BalanceteRelatorios() {
                           r.kind === "total_project" ? "bg-[hsl(var(--ink))] text-white" : ""
                         )}
                       >
-                        <TableCell
-                          className={cn(
-                            "font-semibold",
-                            r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]"
-                          )}
-                        >
+                        <TableCell className={cn("font-semibold", r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]")}>
                           {r.code}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            r.kind === "item" ? "font-semibold" : r.kind === "subitem" ? "pl-6" : "font-semibold",
-                            r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]"
-                          )}
-                        >
+                        <TableCell className={cn(r.kind === "item" ? "font-semibold" : r.kind === "subitem" ? "pl-6" : "font-semibold", r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]")}>
                           {r.name}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right font-semibold",
-                            r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]"
-                          )}
-                        >
+                        <TableCell className={cn("text-right font-semibold", r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]")}>
                           {formatBRL(r.planned)}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right font-semibold",
-                            r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]"
-                          )}
-                        >
+                        <TableCell className={cn("text-right font-semibold", r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]")}>
                           {formatBRL(r.executed)}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right font-semibold",
-                            r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]"
-                          )}
-                        >
+                        <TableCell className={cn("text-right font-semibold", r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]")}>
                           {formatBRL(r.saldo)}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right font-semibold",
-                            r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]"
-                          )}
-                        >
+                        <TableCell className={cn("text-right font-semibold", r.kind === "total_project" ? "text-white" : "text-[hsl(var(--ink))]")}>
                           {`${Math.round(r.pct * 100)}%`}
                         </TableCell>
                       </TableRow>
@@ -270,7 +255,12 @@ export default function BalanceteRelatorios() {
 
         {report === "lancamentos" && (
           <>
-            <ReportHeader title="Relatório de Lançamentos" planned={plannedTotal} executed={executedTotal} project={project} />
+            <ReportHeader
+              title={`Relatório de Lançamentos${hasFilter ? ` · ${dateFrom ? formatDateBR(dateFrom) : "início"} – ${dateTo ? formatDateBR(dateTo) : "hoje"}` : ""}`}
+              planned={plannedTotal}
+              executed={executedTotal}
+              project={project}
+            />
 
             <Card className="rounded-3xl border bg-white p-0 shadow-sm">
               <div className="overflow-auto">
@@ -305,7 +295,9 @@ export default function BalanceteRelatorios() {
 
                     <TableRow className="bg-[hsl(var(--app-bg))]">
                       <TableCell />
-                      <TableCell className="font-semibold text-[hsl(var(--ink))]">TOTAL PAGO NO PROJETO</TableCell>
+                      <TableCell className="font-semibold text-[hsl(var(--ink))]">
+                        {hasFilter ? "TOTAL DO PERÍODO" : "TOTAL PAGO NO PROJETO"}
+                      </TableCell>
                       <TableCell colSpan={6} />
                       <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">
                         {formatBRL(lancamentosRows.reduce((acc, r) => acc + r.valor, 0))}
@@ -320,10 +312,17 @@ export default function BalanceteRelatorios() {
 
         {report === "notas" && (
           <>
-            <ReportHeader title="Relatório de Notas Fiscais" planned={plannedTotal} executed={executedTotal} project={project} />
+            <ReportHeader
+              title={`Relatório de Notas Fiscais${hasFilter ? ` · ${dateFrom ? formatDateBR(dateFrom) : "início"} – ${dateTo ? formatDateBR(dateTo) : "hoje"}` : ""}`}
+              planned={plannedTotal}
+              executed={executedTotal}
+              project={project}
+            />
 
             <Card className="rounded-3xl border bg-white p-6 shadow-sm">
-              <div className="text-sm font-semibold text-[hsl(var(--ink))]">Notas anexadas</div>
+              <div className="text-sm font-semibold text-[hsl(var(--ink))]">
+                Notas anexadas {hasFilter && <span className="font-normal text-[hsl(var(--muted-ink))]">(filtradas por período)</span>}
+              </div>
               <div className="mt-2 text-sm text-[hsl(var(--muted-ink))]">
                 O sistema irá consolidar as notas fiscais anexadas (PDF) em um único arquivo, ordenadas pela data da nota fiscal.
               </div>
@@ -356,7 +355,7 @@ export default function BalanceteRelatorios() {
 
                 {!notasRows.length && (
                   <div className="rounded-2xl border bg-[hsl(var(--app-bg))] p-6 text-center text-sm text-[hsl(var(--muted-ink))]">
-                    Nenhuma nota fiscal anexada ao projeto.
+                    {hasFilter ? "Nenhuma nota fiscal no período selecionado." : "Nenhuma nota fiscal anexada ao projeto."}
                   </div>
                 )}
               </div>
@@ -370,7 +369,6 @@ export default function BalanceteRelatorios() {
           header, footer { display: none !important; }
           button { display: none !important; }
           a { text-decoration: none; }
-          .print\:p-0 { padding: 0 !important; }
         }
       `}</style>
     </div>

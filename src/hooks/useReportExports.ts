@@ -90,7 +90,7 @@ export function useReportExports({
     }
   }
 
-  const exportRubricasPdf = () => {
+  function buildRubricasDoc() {
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
 
     doc.setFontSize(14);
@@ -150,14 +150,13 @@ export function useReportExports({
           data.cell.styles.textColor = [255, 255, 255];
           data.cell.styles.fontStyle = "bold";
         }
-
       },
     });
 
-    doc.save("relatorio-rubricas.pdf");
-  };
+    return doc;
+  }
 
-  const exportLancamentosPdf = () => {
+  function buildLancamentosDoc() {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     doc.setFontSize(14);
     doc.text("Relatório de Lançamentos", 40, 40);
@@ -184,12 +183,25 @@ export function useReportExports({
     });
 
     const totalPago = lancamentosRows.reduce((acc, r) => acc + r.valor, 0);
-    // jsPDF-autotable adiciona lastAutoTable ao objeto doc em runtime; não há tipo oficial
     const endY = (doc as any).lastAutoTable?.finalY ?? 70;
     doc.setFontSize(10);
     doc.text(`Total Pago no Projeto: ${formatBRL(totalPago)}`, 40, endY + 18);
 
-    doc.save("relatorio-lancamentos.pdf");
+    return doc;
+  }
+
+  const exportRubricasPdf = () => buildRubricasDoc().save("relatorio-rubricas.pdf");
+
+  const previewRubricasPdf = () => {
+    const url = buildRubricasDoc().output("bloburl");
+    window.open(url as unknown as string, "_blank", "noopener,noreferrer");
+  };
+
+  const exportLancamentosPdf = () => buildLancamentosDoc().save("relatorio-lancamentos.pdf");
+
+  const previewLancamentosPdf = () => {
+    const url = buildLancamentosDoc().output("bloburl");
+    window.open(url as unknown as string, "_blank", "noopener,noreferrer");
   };
 
   const exportRubricasXlsx = () => {
@@ -374,7 +386,9 @@ export function useReportExports({
   return {
     printRef,
     exportRubricasPdf,
+    previewRubricasPdf,
     exportLancamentosPdf,
+    previewLancamentosPdf,
     exportRubricasXlsx,
     exportLancamentosXlsx,
     viewSingleInvoicePdf,

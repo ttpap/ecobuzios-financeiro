@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/appStore";
 import type { Budget, BudgetCategory, BudgetLine, Project, Transaction, Vendor } from "@/lib/supabaseTypes";
 import { normalizePayMethod, formatDateBR } from "@/lib/reportBuilders";
 
-export function useReportData() {
+export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?: string } = {}) {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
 
   const projectQuery = useQuery({
@@ -191,11 +191,14 @@ export function useReportData() {
   }, [categoriesQuery.data, linesQuery.data, executedByLine, plannedTotal, executedTotal]);
 
   const lancamentosRows = useMemo(() => {
-    const list = (txQuery.data ?? [])
-      .slice()
-      .sort((a: any, b: any) =>
-        String(a.paid_date ?? a.date ?? "").localeCompare(String(b.paid_date ?? b.date ?? ""))
-      );
+    let list = (txQuery.data ?? []).slice();
+
+    if (dateFrom) list = list.filter((t: any) => String(t.paid_date ?? t.date ?? "") >= dateFrom);
+    if (dateTo)   list = list.filter((t: any) => String(t.paid_date ?? t.date ?? "") <= dateTo);
+
+    list.sort((a: any, b: any) =>
+      String(a.paid_date ?? a.date ?? "").localeCompare(String(b.paid_date ?? b.date ?? ""))
+    );
 
     return list.map((t: any) => {
       const line = lineById.get(String(t.budget_line_id));
@@ -212,19 +215,22 @@ export function useReportData() {
         valor: Number(t.amount ?? 0),
       };
     });
-  }, [txQuery.data, lineById, vendorById]);
+  }, [txQuery.data, lineById, vendorById, dateFrom, dateTo]);
 
   const notasDisponiveis = useMemo(() => {
-    const list = (txQuery.data ?? [])
-      .filter((t: any) => Boolean(t.invoice_path))
+    let source = (txQuery.data ?? []).filter((t: any) => Boolean(t.invoice_path));
+
+    if (dateFrom) source = source.filter((t: any) => String(t.due_date ?? "") >= dateFrom);
+    if (dateTo)   source = source.filter((t: any) => String(t.due_date ?? "") <= dateTo);
+
+    return source
       .map((t: any) => ({
         invoice_path: String(t.invoice_path),
         invoice_file_name: String(t.invoice_file_name ?? "nota-fiscal.pdf"),
         due_date: String(t.due_date ?? ""),
       }))
       .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)));
-    return list;
-  }, [txQuery.data]);
+  }, [txQuery.data, dateFrom, dateTo]);
 
   return {
     project: projectQuery.data ?? null,

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 import { downloadXlsxFromRows, downloadXlsxWithSheets, formatPercent } from "@/lib/reporting";
 import { normalizePayMethod, formatDateBR } from "@/lib/reportBuilders";
 import { formatBRL } from "@/lib/money";
@@ -265,35 +266,43 @@ export function useReportExports({
 
   const mergeInvoicesPdf = async () => {
     if (!notasRows.length) return;
+    const tid = toast.loading("Gerando visualização…");
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const merged = await PDFDocument.create();
 
-    const { PDFDocument } = await import("pdf-lib");
-    const merged = await PDFDocument.create();
+      for (const inv of notasRows) {
+        const { data, error } = await supabase.storage.from("invoices").createSignedUrl(inv.invoice_path, 60);
+        if (error) throw error;
 
-    for (const inv of notasRows) {
-      const { data, error } = await supabase.storage.from("invoices").createSignedUrl(inv.invoice_path, 60);
-      if (error) throw error;
+        const res = await fetch(data.signedUrl);
+        if (!res.ok) throw new Error(`Falha ao baixar nota: ${inv.invoice_file_name}`);
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const src = await PDFDocument.load(bytes);
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach((p) => merged.addPage(p));
+      }
 
-      const res = await fetch(data.signedUrl);
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      const src = await PDFDocument.load(bytes);
-      const pages = await merged.copyPages(src, src.getPageIndices());
-      pages.forEach((p) => merged.addPage(p));
+      await applyStampToDoc(merged);
+
+      const out = await merged.save();
+      const blob = new Blob([out as any], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      toast.dismiss(tid);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: unknown) {
+      toast.dismiss(tid);
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar visualização");
     }
-
-    await applyStampToDoc(merged);
-
-    const out = await merged.save();
-    const blob = new Blob([out as any], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const exportNotasConsolidadasPdf = async () => {
+    if (!notasRows.length) {
+      toast.error("Nenhuma nota fiscal anexada.");
+      return;
+    }
+    const tid = toast.loading("Gerando PDF…");
     try {
-      if (!notasRows.length) {
-        alert("Nenhuma nota fiscal anexada.");
-        return;
-      }
 
       const { PDFDocument } = await import("pdf-lib");
       const merged = await PDFDocument.create();
@@ -323,8 +332,11 @@ export function useReportExports({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      toast.dismiss(tid);
+      toast.success("PDF gerado com sucesso!");
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Falha ao gerar PDF");
+      toast.dismiss(tid);
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar PDF");
     }
   };
 

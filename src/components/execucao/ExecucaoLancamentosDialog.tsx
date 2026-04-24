@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import type { BudgetLine, Transaction } from "@/lib/supabaseTypes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatBRL, formatPtBrDecimal, parsePtBrMoneyToNumber } from "@/lib/money";
 import { monthRefFromIndex } from "@/lib/fileUtils";
 import { useTransactionForm } from "@/hooks/useTransactionForm";
@@ -206,13 +207,16 @@ export function ExecucaoLancamentosDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-2xl lg:max-w-3xl"
+        >
+          <SheetHeader>
+            <SheetTitle>
               Lançamentos — {line?.code || ""} {line?.name || ""} · Mês {form.currentMonthIndex}
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
 
           <div className="grid gap-4">
             {/* Abas de lançamentos quando há 2 ou mais no mês */}
@@ -324,8 +328,8 @@ export function ExecucaoLancamentosDialog({
               }}
             />
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={form.previewOpen} onOpenChange={form.setPreviewOpen}>
         <DialogContent className="max-w-5xl rounded-3xl">

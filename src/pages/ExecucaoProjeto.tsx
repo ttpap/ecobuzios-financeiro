@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -322,8 +322,8 @@ export default function ExecucaoProjeto() {
                 const item = itemTotals.get(cat.id) ?? { planned: 0, executed: 0 };
 
                 return (
-                  <>
-                    <TableRow key={cat.id} className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
+                  <Fragment key={cat.id}>
+                    <TableRow className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">{cat.code}</TableCell>
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">{cat.name}</TableCell>
                       {monthCols.map((m) => (
@@ -430,7 +430,7 @@ export default function ExecucaoProjeto() {
                         </TableRow>
                       );
                     })}
-                  </>
+                  </Fragment>
                 );
               })}
 

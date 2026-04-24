@@ -24,14 +24,24 @@ import BalanceteAlertas from "@/pages/BalanceteAlertas";
 import BalanceteConfiguracoes from "@/pages/BalanceteConfiguracoes";
 import { SessionProvider } from "@/context/SessionContext";
 import { RequireAuth } from "@/components/app/RequireAuth";
+import { RequireActiveProject } from "@/components/app/RequireActiveProject";
 import { AppShell } from "@/components/app/AppShell";
 import API from "@/pages/API";
 import Arquivados from "@/pages/Arquivados";
 import Documentos from "@/pages/Documentos";
+import SelectProject from "@/pages/SelectProject";
 
 const queryClient = new QueryClient();
 
 const AuthedLayout = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth>
+    <RequireActiveProject>
+      <AppShell>{children}</AppShell>
+    </RequireActiveProject>
+  </RequireAuth>
+);
+
+const AuthedNoProjectLayout = ({ children }: { children: React.ReactNode }) => (
   <RequireAuth>
     <AppShell>{children}</AppShell>
   </RequireAuth>
@@ -48,8 +58,17 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
 
+            <Route
+              path="/selecionar-projeto"
+              element={
+                <RequireAuth>
+                  <SelectProject />
+                </RequireAuth>
+              }
+            />
+
             <Route path="/dashboard" element={<AuthedLayout><Dashboard /></AuthedLayout>} />
-            <Route path="/projects" element={<AuthedLayout><Projects /></AuthedLayout>} />
+            <Route path="/projects" element={<AuthedNoProjectLayout><Projects /></AuthedNoProjectLayout>} />
             <Route path="/api" element={<AuthedLayout><API /></AuthedLayout>} />
             <Route path="/fornecedores" element={<AuthedLayout><Fornecedores /></AuthedLayout>} />
             <Route path="/arquivados" element={<AuthedLayout><Arquivados /></AuthedLayout>} />

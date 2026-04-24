@@ -4,15 +4,22 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/context/SessionContext";
+import { useAppStore } from "@/lib/appStore";
 import ecoLogo from "@/assets/ecobuzios-logo.png";
 
 export default function Login() {
   const { session } = useSession();
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (session) navigate("/dashboard", { replace: true });
-  }, [session, navigate]);
+    if (!session) return;
+    if (activeProjectId) {
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/selecionar-projeto", { replace: true });
+    }
+  }, [session, activeProjectId, navigate]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--app-bg))]">

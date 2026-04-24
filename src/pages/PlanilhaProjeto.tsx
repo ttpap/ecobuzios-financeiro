@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,9 @@ import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { BalanceteTabs } from "@/components/balancete/BalanceteTabs";
 import { monthRefFromIndex } from "@/lib/fileUtils";
+import { LoadingState, EmptyState } from "@/components/app/StateViews";
+import { Check, Loader2 } from "lucide-react";
+import { useBeforeUnload } from "@/hooks/useBeforeUnload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -408,6 +411,18 @@ export default function PlanilhaProjeto() {
     return totals;
   }, [linesQuery.data, monthsCount]);
 
+  const isSaving =
+    updateLine.isPending ||
+    updateCategory.isPending ||
+    updateCategoryCode.isPending ||
+    addSubitem.isPending ||
+    addItem.isPending ||
+    updateStartMonth.isPending ||
+    syncBudgetMonths.isPending;
+
+  const hasUnsavedDrafts = Object.keys(approvedDrafts).length > 0;
+  useBeforeUnload(isSaving || hasUnsavedDrafts);
+
   if (!activeProjectId) {
     return (
       <div className="rounded-3xl border bg-white p-6">
@@ -418,6 +433,15 @@ export default function PlanilhaProjeto() {
         >
           <Link to="/projects">Ir para Projetos</Link>
         </Button>
+      </div>
+    );
+  }
+
+  if (projectQuery.isLoading || budgetQuery.isLoading) {
+    return (
+      <div className="grid gap-6">
+        <BalanceteTabs />
+        <LoadingState label="Carregando orçamento…" />
       </div>
     );
   }
@@ -437,9 +461,32 @@ export default function PlanilhaProjeto() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
             </Button>
-            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[hsl(var(--ink))]">
-              Balancete PRO
-            </h1>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-[hsl(var(--ink))]">
+                Balancete PRO
+              </h1>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition",
+                  isSaving
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-emerald-50 text-emerald-700"
+                )}
+                aria-live="polite"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Salvando…
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    Salvo
+                  </>
+                )}
+              </span>
+            </div>
             <p className="mt-1 text-sm text-[hsl(var(--muted-ink))]">
               {projectQuery.data?.project_number
                 ? `#${(projectQuery.data as any).project_number} · `
@@ -478,13 +525,20 @@ export default function PlanilhaProjeto() {
         </div>
       </div>
 
-      <Card className="rounded-3xl border bg-white p-0 shadow-sm">
-        <div className="overflow-auto">
+      {!(categoriesQuery.data?.length ?? 0) && !categoriesQuery.isLoading && (
+        <EmptyState
+          title="Nenhum item de orçamento ainda"
+          description="Use o formulário acima para criar o primeiro item (ex: 01 · Recursos Humanos) e depois adicione subitens."
+        />
+      )}
+
+      <Card className="min-w-0 rounded-3xl border bg-white p-0 shadow-sm">
+        <div className="overflow-x-auto">
           <Table className="[&_td]:border-r [&_td]:border-gray-100 [&_th]:border-r [&_th]:border-gray-100">
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="min-w-[110px] font-bold text-[hsl(var(--ink))]">Código</TableHead>
-                <TableHead className="min-w-[320px] font-bold text-[hsl(var(--ink))]">Descrição</TableHead>
+                <TableHead className="sticky left-0 z-20 min-w-[110px] bg-gray-50 font-bold text-[hsl(var(--ink))] shadow-[1px_0_0_0_rgba(0,0,0,0.04)]">Código</TableHead>
+                <TableHead className="sticky left-[110px] z-20 min-w-[320px] bg-gray-50 font-bold text-[hsl(var(--ink))] shadow-[1px_0_0_0_rgba(0,0,0,0.04)]">Descrição</TableHead>
                 <TableHead className="min-w-[160px] text-right font-bold text-[hsl(var(--ink))]">Valor total</TableHead>
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Mês inicial</TableHead>
                 <TableHead className="min-w-[140px] text-right font-bold text-[hsl(var(--ink))]">Mês final</TableHead>
@@ -549,9 +603,9 @@ export default function PlanilhaProjeto() {
                 const itemTotal = itemTotals.get(cat.id) ?? 0;
 
                 return (
-                  <>
-                    <TableRow key={cat.id} className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
-                      <TableCell className="font-semibold text-[hsl(var(--ink))]">
+                  <Fragment key={cat.id}>
+                    <TableRow className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
+                      <TableCell className="sticky left-0 z-10 bg-[hsl(var(--brand)/0.08)] font-semibold text-[hsl(var(--ink))] shadow-[1px_0_0_0_rgba(0,0,0,0.04)]">
                         <Input
                           defaultValue={String(cat.code ?? "")}
                           className="h-9 w-24 rounded-full bg-white text-right"
@@ -564,7 +618,7 @@ export default function PlanilhaProjeto() {
                           }}
                         />
                       </TableCell>
-                      <TableCell className="font-semibold text-[hsl(var(--ink))]">
+                      <TableCell className="sticky left-[110px] z-10 bg-[hsl(var(--brand)/0.08)] font-semibold text-[hsl(var(--ink))] shadow-[1px_0_0_0_rgba(0,0,0,0.04)]">
                         <Input
                           defaultValue={String(cat.name ?? "")}
                           className="h-9 rounded-full bg-white"
@@ -629,12 +683,12 @@ export default function PlanilhaProjeto() {
                       const invalid = end < start || end > monthsCount;
 
                       return (
-                        <TableRow key={l.id} className={cn(lineIdx % 2 === 1 ? "!bg-blue-50" : "bg-white", "hover:!bg-blue-100 transition-colors")}>
-                          <TableCell className="text-sm font-semibold text-[hsl(var(--ink))]">
+                        <TableRow key={l.id} className={cn(lineIdx % 2 === 1 ? "!bg-blue-50" : "bg-white", "hover:!bg-blue-100 transition-colors group/row")}>
+                          <TableCell className={cn("sticky left-0 z-10 text-sm font-semibold text-[hsl(var(--ink))] shadow-[1px_0_0_0_rgba(0,0,0,0.04)]", lineIdx % 2 === 1 ? "bg-blue-50" : "bg-white")}>
                             {l.code || ""}
                           </TableCell>
 
-                          <TableCell>
+                          <TableCell className={cn("sticky left-[110px] z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.04)]", lineIdx % 2 === 1 ? "bg-blue-50" : "bg-white")}>
                             <Input
                               value={l.name}
                               onChange={(e) =>
@@ -745,7 +799,7 @@ export default function PlanilhaProjeto() {
                         </TableRow>
                       );
                     })}
-                  </>
+                  </Fragment>
                 );
               })}
 

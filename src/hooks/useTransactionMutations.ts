@@ -18,6 +18,7 @@ export function useTransactionMutations({
   projectId,
   line,
   monthRef,
+  monthIndex,
   editingLineId,
   budgetStartMonth,
   onChangeSelectedLineId,
@@ -27,6 +28,7 @@ export function useTransactionMutations({
   projectId: string;
   line: BudgetLine | null;
   monthRef: string;
+  monthIndex: number;
   editingLineId: string;
   budgetStartMonth?: string | null;
   onChangeSelectedLineId?: (lineId: string) => void;
@@ -51,15 +53,19 @@ export function useTransactionMutations({
     queryKey: ["execTxMonth", projectId, budgetId, line?.id, monthRef],
     enabled: Boolean(open && projectId && budgetId && line?.id),
     queryFn: async () => {
-      const { data, error } = await supabase
+      // When no start_month, trigger stores real calendar dates in month_ref.
+      // Match by month_index so dialog finds transactions regardless of paid_date.
+      const q = supabase
         .from("transactions")
         .select("*")
         .eq("project_id", projectId)
         .eq("budget_id", budgetId)
         .eq("budget_line_id", line!.id)
-        .eq("month_ref", monthRef)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
+      const { data, error } = await (budgetStartMonth
+        ? q.eq("month_ref", monthRef)
+        : q.eq("month_index", monthIndex));
       if (error) throw error;
       return (data ?? []) as Transaction[];
     },
@@ -226,7 +232,15 @@ export function useTransactionMutations({
         .single();
       if (error) throw error;
 
-      const uploaded = await addAttachmentsToTx.mutateAsync({ txId: tx.id, projectId, files });
+      let uploaded: TransactionAttachment[] = [];
+      try {
+        uploaded = await addAttachmentsToTx.mutateAsync({ txId: tx.id, projectId, files });
+      } catch (uploadErr) {
+        // Transaction was saved; only the attachment failed. Return the tx so
+        // onSuccess fires and invalidates the cache. Caller sees a warning.
+        toast.warning("Lançamento salvo, mas falha ao enviar anexo. Tente anexar novamente.");
+        return tx as Transaction;
+      }
 
       // Mantém compatibilidade: preenche invoice_* com o primeiro anexo
       if (uploaded.length) {

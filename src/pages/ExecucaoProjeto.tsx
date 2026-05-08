@@ -159,14 +159,17 @@ export default function ExecucaoProjeto() {
       const monthIndex = Number((t as any).month_index);
       const rawDate = (t as any).date as string | undefined;
 
-      // Prefer month_ref (set by new transactions), then compute from month_index, then fall back to date
-      const mk = monthRef
-        ? String(monthRef)
-        : Number.isFinite(monthIndex) && monthIndex > 0
-          ? monthRefFromIndex(monthIndex, budgetStart)
-          : rawDate && /^\d{4}-\d{2}/.test(rawDate)
-            ? `${rawDate.slice(0, 7)}-01`
-            : "";
+      // When no start_month the trigger stores real paid_date in month_ref,
+      // but cells key by epoch-based "2000-XX-01". Match by month_index instead.
+      const mk = !budgetStart && Number.isFinite(monthIndex) && monthIndex > 0
+        ? monthRefFromIndex(monthIndex, null)
+        : monthRef
+          ? String(monthRef)
+          : Number.isFinite(monthIndex) && monthIndex > 0
+            ? monthRefFromIndex(monthIndex, budgetStart)
+            : rawDate && /^\d{4}-\d{2}/.test(rawDate)
+              ? `${rawDate.slice(0, 7)}-01`
+              : "";
 
       const amount = Number((t as any).amount ?? 0);
 
@@ -317,6 +320,74 @@ export default function ExecucaoProjeto() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {(categoriesQuery.data ?? []).length === 0 && (linesQuery.data ?? []).some((l) => !l.is_subtotal) && (() => {
+                const lines = (linesQuery.data ?? []).filter((l) => !l.is_subtotal);
+                const executed = lines.reduce((acc, l) => acc + (executedAgg.byLine.get(l.id) ?? 0), 0);
+                const planned = lines.reduce((acc, l) => acc + Number(l.total_approved ?? 0), 0);
+                return (
+                  <Fragment key="__sem-categoria">
+                    <TableRow className="border-l-4 border-l-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)]">
+                      <TableCell className="font-semibold text-[hsl(var(--ink))]">—</TableCell>
+                      <TableCell className="font-semibold text-[hsl(var(--ink))]">Itens</TableCell>
+                      {monthCols.map((m) => (<TableCell key={m.idx} />))}
+                      <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">{formatBRL(planned)}</TableCell>
+                      <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">{formatBRL(executed)}</TableCell>
+                      <TableCell className={cn("text-right font-semibold", planned - executed < 0 ? "text-red-700" : "text-[hsl(var(--ink))]")}>{formatBRL(planned - executed)}</TableCell>
+                    </TableRow>
+                    {lines.map((l, lineIdx) => {
+                      const totals = lineTotals.get(l.id) ?? { planned: 0, executed: 0 };
+                      const saldoLine = totals.planned - totals.executed;
+                      return (
+                        <TableRow key={l.id} className={cn(lineIdx % 2 === 1 ? "!bg-blue-50" : "bg-white", "hover:!bg-blue-100 transition-colors")}>
+                          <TableCell className="font-medium text-[hsl(var(--ink))]">{l.code}</TableCell>
+                          <TableCell className="text-[hsl(var(--ink))]">{l.name}</TableCell>
+                          {monthCols.map((m) => {
+                            const mk = monthRefFromIndex(m.idx, (budgetQuery.data as any)?.start_month);
+                            const planned = plannedAgg.byLineMonth.get(`${l.id}__${mk}`) ?? 0;
+                            const executed = executedAgg.byLineMonth.get(`${l.id}__${mk}`) ?? 0;
+                            const remaining = planned - executed;
+                            const hasTx = executed !== 0;
+                            const missingPdf = executedAgg.missingInvoice.has(`${l.id}__${mk}`);
+                            const display = hasTx ? remaining : planned;
+                            return (
+                              <TableCell key={m.idx} className="text-right">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className={cn(
+                                        "w-full rounded-xl px-2 py-1 text-right text-sm font-semibold transition",
+                                        "hover:bg-black/5",
+                                        hasTx ? remaining < 0 ? "text-red-700" : remaining === 0 ? "text-emerald-700" : "text-[hsl(var(--brand-strong))]" : planned ? "text-[hsl(var(--ink))]" : "text-[hsl(var(--muted-ink))]",
+                                        missingPdf ? "ring-2 ring-red-500/70" : ""
+                                      )}
+                                      onClick={() => { setSelectedLine(l); setSelectedMonth(m.idx); setOpen(true); }}
+                                    >
+                                      {formatBRL(display)}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="text-xs">
+                                      <div>Planejado: <span className="font-semibold">{formatBRL(planned)}</span></div>
+                                      <div>Executado: <span className="font-semibold">{formatBRL(executed)}</span></div>
+                                      <div>Saldo: <span className="font-semibold">{formatBRL(remaining)}</span></div>
+                                      {missingPdf && <div className="mt-2 font-semibold text-red-700">Atenção: há lançamento sem PDF.</div>}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">{formatBRL(totals.planned)}</TableCell>
+                          <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">{formatBRL(totals.executed)}</TableCell>
+                          <TableCell className={cn("text-right font-semibold", saldoLine < 0 ? "text-red-700" : "text-[hsl(var(--ink))]")}>{formatBRL(saldoLine)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })()}
+
               {(categoriesQuery.data ?? []).map((cat: any) => {
                 const lines = (linesQuery.data ?? []).filter((l) => l.category_id === cat.id);
                 const item = itemTotals.get(cat.id) ?? { planned: 0, executed: 0 };
@@ -466,7 +537,10 @@ export default function ExecucaoProjeto() {
 
       <ExecucaoLancamentosDialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) queryClient.invalidateQueries({ queryKey: ["execTx", activeProjectId, budgetQuery.data?.id] });
+        }}
         projectId={activeProjectId}
         budgetId={budgetQuery.data.id}
         line={selectedLine}

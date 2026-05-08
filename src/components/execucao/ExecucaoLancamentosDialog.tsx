@@ -57,6 +57,7 @@ export function ExecucaoLancamentosDialog({
     projectId,
     line,
     monthRef,
+    monthIndex: form.currentMonthIndex,
     editingLineId: form.editingLineId,
     budgetStartMonth,
     onChangeSelectedLineId,

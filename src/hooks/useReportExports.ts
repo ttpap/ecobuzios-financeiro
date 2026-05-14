@@ -6,6 +6,7 @@ import { downloadXlsxFromRows, downloadXlsxWithSheets, formatPercent } from "@/l
 import { normalizePayMethod, formatDateBR } from "@/lib/reportBuilders";
 import { formatBRL } from "@/lib/money";
 import { supabase } from "@/integrations/supabase/client";
+import { getProjectLogoUrl } from "@/lib/projectLogos";
 import type { Project, Budget } from "@/lib/supabaseTypes";
 
 type RubricaRow = {
@@ -56,6 +57,41 @@ export function useReportExports({
 }: UseReportExportsProps) {
   const printRef = useRef<HTMLDivElement | null>(null);
 
+  async function fetchLogoForPdf(): Promise<{ data: string; format: "PNG" | "JPEG"; w: number; h: number } | null> {
+    if (!project?.logo_path) return null;
+    const url = await getProjectLogoUrl(project.logo_path);
+    if (!url) return null;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const ab = await res.arrayBuffer();
+      const bytes = new Uint8Array(ab);
+      let binary = "";
+      bytes.forEach((b) => (binary += String.fromCharCode(b)));
+      const b64 = window.btoa(binary);
+      const isPng = (project.logo_file_name ?? "").toLowerCase().endsWith(".png");
+      const format: "PNG" | "JPEG" = isPng ? "PNG" : "JPEG";
+      const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.onerror = () => resolve({ w: 200, h: 100 });
+        img.src = `data:image/${isPng ? "png" : "jpeg"};base64,${b64}`;
+      });
+      return { data: b64, format, w: dims.w, h: dims.h };
+    } catch {
+      return null;
+    }
+  }
+
+  function addLogoToPdf(doc: jsPDF, logo: { data: string; format: "PNG" | "JPEG"; w: number; h: number }) {
+    const MAX_H = 50;
+    const ratio = logo.w / logo.h;
+    const h = MAX_H;
+    const w = h * ratio;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.addImage(logo.data, logo.format, pageWidth - w - 40, 16, w, h);
+  }
+
   // Busca a imagem do carimbo do projeto e aplica em todas as páginas do PDF
   async function applyStampToDoc(merged: any) {
     if (!project?.stamp_path) return;
@@ -90,8 +126,11 @@ export function useReportExports({
     }
   }
 
-  function buildRubricasDoc() {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  async function buildRubricasDoc() {
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+
+    const logo = await fetchLogoForPdf();
+    if (logo) addLogoToPdf(doc, logo);
 
     doc.setFontSize(14);
     doc.text("Relatório de Rubricas (Planejado x Executado)", 40, 40);
@@ -156,8 +195,12 @@ export function useReportExports({
     return doc;
   }
 
-  function buildLancamentosDoc() {
+  async function buildLancamentosDoc() {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+
+    const logo = await fetchLogoForPdf();
+    if (logo) addLogoToPdf(doc, logo);
+
     doc.setFontSize(14);
     doc.text("Relatório de Lançamentos", 40, 40);
 
@@ -190,17 +233,17 @@ export function useReportExports({
     return doc;
   }
 
-  const exportRubricasPdf = () => buildRubricasDoc().save("relatorio-rubricas.pdf");
+  const exportRubricasPdf = async () => (await buildRubricasDoc()).save("relatorio-rubricas.pdf");
 
-  const previewRubricasPdf = () => {
-    const url = buildRubricasDoc().output("bloburl");
+  const previewRubricasPdf = async () => {
+    const url = (await buildRubricasDoc()).output("bloburl");
     window.open(url as unknown as string, "_blank", "noopener,noreferrer");
   };
 
-  const exportLancamentosPdf = () => buildLancamentosDoc().save("relatorio-lancamentos.pdf");
+  const exportLancamentosPdf = async () => (await buildLancamentosDoc()).save("relatorio-lancamentos.pdf");
 
-  const previewLancamentosPdf = () => {
-    const url = buildLancamentosDoc().output("bloburl");
+  const previewLancamentosPdf = async () => {
+    const url = (await buildLancamentosDoc()).output("bloburl");
     window.open(url as unknown as string, "_blank", "noopener,noreferrer");
   };
 

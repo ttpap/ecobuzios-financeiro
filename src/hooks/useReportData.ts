@@ -5,7 +5,18 @@ import { useAppStore } from "@/lib/appStore";
 import type { Budget, BudgetCategory, BudgetLine, Project, Transaction, Vendor } from "@/lib/supabaseTypes";
 import { normalizePayMethod, formatDateBR } from "@/lib/reportBuilders";
 
-export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?: string } = {}) {
+const MONTH_LABELS: Record<string, string> = {
+  "01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr",
+  "05": "Mai", "06": "Jun", "07": "Jul", "08": "Ago",
+  "09": "Set", "10": "Out", "11": "Nov", "12": "Dez",
+};
+
+export function monthRefLabel(monthRef: string) {
+  const [y, m] = monthRef.split("-");
+  return `${MONTH_LABELS[m] ?? m}/${y?.slice(2)}`;
+}
+
+export function useReportData(selectedMonths: string[] = []) {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
 
   const projectQuery = useQuery({
@@ -98,14 +109,29 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
     return m;
   }, [linesQuery.data]);
 
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of txQuery.data ?? []) {
+      if (t.month_ref) set.add(t.month_ref);
+    }
+    return Array.from(set).sort();
+  }, [txQuery.data]);
+
+  const filteredTx = useMemo(() => {
+    const all = txQuery.data ?? [];
+    if (!selectedMonths.length) return all;
+    const set = new Set(selectedMonths);
+    return all.filter((t) => set.has(t.month_ref));
+  }, [txQuery.data, selectedMonths]);
+
   const executedByLine = useMemo(() => {
     const m = new Map<string, number>();
-    for (const t of txQuery.data ?? []) {
+    for (const t of filteredTx) {
       const lid = String(t.budget_line_id);
       m.set(lid, (m.get(lid) ?? 0) + Number(t.amount ?? 0));
     }
     return m;
-  }, [txQuery.data]);
+  }, [filteredTx]);
 
   const plannedTotal = useMemo(() => {
     return (linesQuery.data ?? [])
@@ -114,8 +140,8 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
   }, [linesQuery.data]);
 
   const executedTotal = useMemo(() => {
-    return (txQuery.data ?? []).reduce((acc, t) => acc + Number(t.amount ?? 0), 0);
-  }, [txQuery.data]);
+    return filteredTx.reduce((acc, t) => acc + Number(t.amount ?? 0), 0);
+  }, [filteredTx]);
 
   const rubricasRows = useMemo(() => {
     type RowKind = "item" | "subitem" | "total_item" | "total_project";
@@ -143,7 +169,6 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
       const saldoCat = plannedCat - executedCat;
       const pctCat = plannedCat > 0 ? executedCat / plannedCat : 0;
 
-      // Linha do item (rubrica) já com totais.
       rows.push({
         kind: "item",
         code: String(cat.code),
@@ -154,7 +179,6 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
         pct: pctCat,
       });
 
-      // Subitens
       for (const l of lines) {
         const planned = Number(l.total_approved ?? 0);
         const executed = executedByLine.get(l.id) ?? 0;
@@ -163,7 +187,6 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
         rows.push({ kind: "subitem", code: String(l.code ?? ""), name: l.name, planned, executed, saldo, pct });
       }
 
-      // Linha explícita de total por rubrica (como no exemplo)
       rows.push({
         kind: "total_item",
         code: `Total Rubrica ${String(cat.code)}`,
@@ -191,14 +214,11 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
   }, [categoriesQuery.data, linesQuery.data, executedByLine, plannedTotal, executedTotal]);
 
   const lancamentosRows = useMemo(() => {
-    let list = (txQuery.data ?? []).slice();
-
-    if (dateFrom) list = list.filter((t: any) => String(t.paid_date ?? t.date ?? "") >= dateFrom);
-    if (dateTo)   list = list.filter((t: any) => String(t.paid_date ?? t.date ?? "") <= dateTo);
-
-    list.sort((a: any, b: any) =>
-      String(a.paid_date ?? a.date ?? "").localeCompare(String(b.paid_date ?? b.date ?? ""))
-    );
+    const list = filteredTx
+      .slice()
+      .sort((a: any, b: any) =>
+        String(a.paid_date ?? a.date ?? "").localeCompare(String(b.paid_date ?? b.date ?? ""))
+      );
 
     return list.map((t: any) => {
       const line = lineById.get(String(t.budget_line_id));
@@ -215,22 +235,18 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
         valor: Number(t.amount ?? 0),
       };
     });
-  }, [txQuery.data, lineById, vendorById, dateFrom, dateTo]);
+  }, [filteredTx, lineById, vendorById]);
 
   const notasDisponiveis = useMemo(() => {
-    let source = (txQuery.data ?? []).filter((t: any) => Boolean(t.invoice_path));
-
-    if (dateFrom) source = source.filter((t: any) => String(t.due_date ?? "") >= dateFrom);
-    if (dateTo)   source = source.filter((t: any) => String(t.due_date ?? "") <= dateTo);
-
-    return source
+    return filteredTx
+      .filter((t: any) => Boolean(t.invoice_path))
       .map((t: any) => ({
         invoice_path: String(t.invoice_path),
         invoice_file_name: String(t.invoice_file_name ?? "nota-fiscal.pdf"),
         due_date: String(t.due_date ?? ""),
       }))
       .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)));
-  }, [txQuery.data, dateFrom, dateTo]);
+  }, [filteredTx]);
 
   return {
     project: projectQuery.data ?? null,
@@ -242,7 +258,8 @@ export function useReportData({ dateFrom, dateTo }: { dateFrom?: string; dateTo?
     executedTotal,
     vendorById,
     lineById,
-    transactions: txQuery.data ?? [],
+    transactions: filteredTx,
+    availableMonths,
     isLoading: projectQuery.isLoading || linesQuery.isLoading || txQuery.isLoading,
   };
 }

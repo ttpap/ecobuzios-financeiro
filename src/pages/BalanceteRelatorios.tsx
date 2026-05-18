@@ -3,21 +3,19 @@ import { useAppStore } from "@/lib/appStore";
 import { BalanceteTabs } from "@/components/balancete/BalanceteTabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/money";
 import { ReportHeader } from "@/components/reports/ReportHeader";
-import { Download, Eye, FileText, X } from "lucide-react";
-import { useReportData } from "@/hooks/useReportData";
+import { CalendarDays, Download, Eye, FileText, X } from "lucide-react";
+import { useReportData, monthRefLabel } from "@/hooks/useReportData";
 import { useReportExports } from "@/hooks/useReportExports";
 import { formatDateBR } from "@/lib/reportBuilders";
 
 export default function BalanceteRelatorios() {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [report, setReport] = useState<"rubricas" | "lancamentos" | "notas">("rubricas");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
 
   const {
     project,
@@ -27,7 +25,14 @@ export default function BalanceteRelatorios() {
     notasRows,
     plannedTotal,
     executedTotal,
-  } = useReportData({ dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
+    availableMonths,
+  } = useReportData(selectedMonths);
+
+  function toggleMonth(m: string) {
+    setSelectedMonths((prev) =>
+      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort()
+    );
+  }
 
   const {
     printRef,
@@ -41,9 +46,6 @@ export default function BalanceteRelatorios() {
     mergeInvoicesPdf,
     exportNotasConsolidadasPdf,
   } = useReportExports({ rubricasRows, lancamentosRows, notasRows, project, budget, plannedTotal, executedTotal });
-
-  const hasFilter = dateFrom || dateTo;
-  const clearFilter = () => { setDateFrom(""); setDateTo(""); };
 
   if (!activeProjectId) {
     return (
@@ -72,12 +74,44 @@ export default function BalanceteRelatorios() {
     <div className="grid gap-6">
       <BalanceteTabs />
 
+      {availableMonths.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-white p-3">
+          <span className="flex items-center gap-1 text-xs font-semibold text-[hsl(var(--muted-ink))]">
+            <CalendarDays className="h-3.5 w-3.5" />
+            Mês:
+          </span>
+          {availableMonths.map((m) => (
+            <button
+              key={m}
+              onClick={() => toggleMonth(m)}
+              className={cn(
+                "rounded-full px-3 py-0.5 text-xs font-semibold transition-colors",
+                selectedMonths.includes(m)
+                  ? "bg-[hsl(var(--brand))] text-white"
+                  : "border border-[hsl(var(--border))] text-[hsl(var(--ink))] hover:bg-[hsl(var(--app-bg))]"
+              )}
+            >
+              {monthRefLabel(m)}
+            </button>
+          ))}
+          {selectedMonths.length > 0 && (
+            <button
+              onClick={() => setSelectedMonths([])}
+              className="ml-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-[hsl(var(--muted-ink))] hover:text-[hsl(var(--ink))]"
+            >
+              <X className="h-3 w-3" />
+              Limpar
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Seletor de relatório */}
       <div className="flex min-w-0 flex-wrap gap-2">
         <Button
           variant={report === "rubricas" ? "default" : "outline"}
           className={cn("rounded-full", report === "rubricas" ? "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]" : "")}
-          onClick={() => { setReport("rubricas"); clearFilter(); }}
+          onClick={() => setReport("rubricas")}
         >
           <span className="sm:hidden">Rubricas</span>
           <span className="hidden sm:inline">Relatório de Rubricas</span>
@@ -99,34 +133,6 @@ export default function BalanceteRelatorios() {
           <span className="hidden sm:inline">Relatório de Notas Fiscais</span>
         </Button>
       </div>
-
-      {/* Filtro por período — visível apenas em lançamentos e notas */}
-      {(report === "lancamentos" || report === "notas") && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-[hsl(var(--muted-ink))]">Período:</span>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="h-8 w-auto rounded-full px-3 text-xs"
-            placeholder="De"
-          />
-          <span className="text-xs text-[hsl(var(--muted-ink))]">até</span>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="h-8 w-auto rounded-full px-3 text-xs"
-            placeholder="Até"
-          />
-          {hasFilter && (
-            <Button variant="ghost" size="sm" className="h-8 rounded-full px-2" onClick={clearFilter}>
-              <X className="h-3.5 w-3.5 mr-1" />
-              <span className="text-xs">Limpar filtro</span>
-            </Button>
-          )}
-        </div>
-      )}
 
       {/* Botões de ação */}
       <div className="flex flex-wrap gap-2">
@@ -256,7 +262,7 @@ export default function BalanceteRelatorios() {
         {report === "lancamentos" && (
           <>
             <ReportHeader
-              title={`Relatório de Lançamentos${hasFilter ? ` · ${dateFrom ? formatDateBR(dateFrom) : "início"} – ${dateTo ? formatDateBR(dateTo) : "hoje"}` : ""}`}
+              title={`Relatório de Lançamentos${selectedMonths.length ? ` · ${selectedMonths.map(monthRefLabel).join(", ")}` : ""}`}
               planned={plannedTotal}
               executed={executedTotal}
               project={project}
@@ -296,7 +302,7 @@ export default function BalanceteRelatorios() {
                     <TableRow className="bg-[hsl(var(--app-bg))]">
                       <TableCell />
                       <TableCell className="font-semibold text-[hsl(var(--ink))]">
-                        {hasFilter ? "TOTAL DO PERÍODO" : "TOTAL PAGO NO PROJETO"}
+                        {selectedMonths.length ? "TOTAL DO PERÍODO" : "TOTAL PAGO NO PROJETO"}
                       </TableCell>
                       <TableCell colSpan={6} />
                       <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">
@@ -313,7 +319,7 @@ export default function BalanceteRelatorios() {
         {report === "notas" && (
           <>
             <ReportHeader
-              title={`Relatório de Notas Fiscais${hasFilter ? ` · ${dateFrom ? formatDateBR(dateFrom) : "início"} – ${dateTo ? formatDateBR(dateTo) : "hoje"}` : ""}`}
+              title={`Relatório de Notas Fiscais${selectedMonths.length ? ` · ${selectedMonths.map(monthRefLabel).join(", ")}` : ""}`}
               planned={plannedTotal}
               executed={executedTotal}
               project={project}
@@ -321,7 +327,7 @@ export default function BalanceteRelatorios() {
 
             <Card className="rounded-3xl border bg-white p-6 shadow-sm">
               <div className="text-sm font-semibold text-[hsl(var(--ink))]">
-                Notas anexadas {hasFilter && <span className="font-normal text-[hsl(var(--muted-ink))]">(filtradas por período)</span>}
+                Notas anexadas {selectedMonths.length > 0 && <span className="font-normal text-[hsl(var(--muted-ink))]">(filtradas por mês)</span>}
               </div>
               <div className="mt-2 text-sm text-[hsl(var(--muted-ink))]">
                 O sistema irá consolidar as notas fiscais anexadas (PDF) em um único arquivo, ordenadas pela data da nota fiscal.
@@ -355,7 +361,7 @@ export default function BalanceteRelatorios() {
 
                 {!notasRows.length && (
                   <div className="rounded-2xl border bg-[hsl(var(--app-bg))] p-6 text-center text-sm text-[hsl(var(--muted-ink))]">
-                    {hasFilter ? "Nenhuma nota fiscal no período selecionado." : "Nenhuma nota fiscal anexada ao projeto."}
+                    {selectedMonths.length ? "Nenhuma nota fiscal nos meses selecionados." : "Nenhuma nota fiscal anexada ao projeto."}
                   </div>
                 )}
               </div>

@@ -71,7 +71,7 @@ const App = () => (
             <Route path="/projects" element={<AuthedNoProjectLayout><Projects /></AuthedNoProjectLayout>} />
             <Route path="/api" element={<AuthedLayout><API /></AuthedLayout>} />
             <Route path="/fornecedores" element={<AuthedLayout><Fornecedores /></AuthedLayout>} />
-            <Route path="/arquivados" element={<AuthedLayout><Arquivados /></AuthedLayout>} />
+            <Route path="/arquivados" element={<AuthedNoProjectLayout><Arquivados /></AuthedNoProjectLayout>} />
             <Route path="/documentos" element={<AuthedLayout><Documentos /></AuthedLayout>} />
 
             {/* Módulo Balancete */}

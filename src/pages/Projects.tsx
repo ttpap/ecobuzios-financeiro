@@ -232,22 +232,30 @@ export default function Projects() {
             </p>
           </div>
 
-          <Dialog
-            open={open}
-            onOpenChange={(v) => {
-              setOpen(v);
-              if (!v) setEditing(null);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => setEditing(null)}
-                className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Projeto
-              </Button>
-            </DialogTrigger>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline" className="rounded-full">
+              <Link to="/arquivados">
+                <Archive className="mr-2 h-4 w-4" />
+                Projetos Finalizados
+              </Link>
+            </Button>
+
+            <Dialog
+              open={open}
+              onOpenChange={(v) => {
+                setOpen(v);
+                if (!v) setEditing(null);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => setEditing(null)}
+                  className="rounded-full bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-strong))]"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Projeto
+                </Button>
+              </DialogTrigger>
             <DialogContent className="rounded-3xl">
               <DialogHeader>
                 <DialogTitle>{isEditing ? "Editar projeto" : "Adicionar projeto"}</DialogTitle>
@@ -310,6 +318,7 @@ export default function Projects() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 

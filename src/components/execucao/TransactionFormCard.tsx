@@ -43,6 +43,8 @@ interface TransactionFormCardProps {
   onPaymentMethodChange: (v: PaymentMethod | "") => void;
   documentNumber: string;
   onDocumentNumberChange: (v: string) => void;
+  paymentReceiptNumber: string;
+  onPaymentReceiptNumberChange: (v: string) => void;
   dueDate: string;
   onDueDateChange: (v: string) => void;
   paidDate: string;
@@ -82,6 +84,8 @@ export function TransactionFormCard({
   onPaymentMethodChange,
   documentNumber,
   onDocumentNumberChange,
+  paymentReceiptNumber,
+  onPaymentReceiptNumberChange,
   dueDate,
   onDueDateChange,
   paidDate,
@@ -209,9 +213,28 @@ export function TransactionFormCard({
           </Select>
         </div>
 
-        <div>
-          <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Número do documento</div>
-          <Input value={documentNumber} onChange={(e) => onDocumentNumberChange(e.target.value)} className="rounded-2xl" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Documento da despesa</div>
+            <Input
+              value={documentNumber}
+              onChange={(e) => onDocumentNumberChange(e.target.value)}
+              className="rounded-2xl"
+              placeholder="NF, guia ou recibo"
+            />
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Comprovante de pagamento</div>
+            <Input
+              value={paymentReceiptNumber}
+              onChange={(e) => onPaymentReceiptNumberChange(e.target.value)}
+              className="rounded-2xl"
+              placeholder="Nº do Pix / transferência"
+            />
+          </div>
+        </div>
+        <div className="-mt-1 text-[11px] text-[hsl(var(--muted-ink))]">
+          Preencha pelo menos um dos dois. O comprovante pode ser completado depois do pagamento.
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

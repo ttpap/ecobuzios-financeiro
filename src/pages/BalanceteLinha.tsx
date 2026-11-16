@@ -33,6 +33,7 @@ export default function BalanceteLinha() {
   const [description, setDescription] = useState<string>("");
   const [expenseType, setExpenseType] = useState<string>("");
   const [documentNumber, setDocumentNumber] = useState<string>("");
+  const [paymentReceiptNumber, setPaymentReceiptNumber] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
   const lineQuery = useQuery({
@@ -91,6 +92,8 @@ export default function BalanceteLinha() {
 
       const value = parsePtBrMoneyToNumber(amount);
       if (!value || value <= 0) throw new Error("Informe um valor válido");
+      if (!documentNumber.trim() && !paymentReceiptNumber.trim())
+        throw new Error("Informe o documento da despesa ou o comprovante de pagamento");
 
       const month_ref = toMonthRef(date);
 
@@ -108,6 +111,7 @@ export default function BalanceteLinha() {
         description: description.trim() ? description.trim() : null,
         expense_type: expenseType.trim() ? expenseType.trim() : null,
         document_number: documentNumber.trim() ? documentNumber.trim() : null,
+        payment_receipt_number: paymentReceiptNumber.trim() ? paymentReceiptNumber.trim() : null,
         notes: notes.trim() ? notes.trim() : null,
         created_by_user_id: session.user.id,
       });
@@ -121,6 +125,7 @@ export default function BalanceteLinha() {
       setDescription("");
       setExpenseType("");
       setDocumentNumber("");
+      setPaymentReceiptNumber("");
       setNotes("");
       queryClient.invalidateQueries({ queryKey: ["lineTransactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactionsAgg"] });
@@ -218,8 +223,12 @@ export default function BalanceteLinha() {
             <Input value={expenseType} onChange={(e) => setExpenseType(e.target.value)} className="rounded-2xl" placeholder="Ex: Folha / NF / Recibo" />
           </div>
           <div>
-            <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Nº documento</div>
-            <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className="rounded-2xl" placeholder="Ex: NF 1234" />
+            <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Documento da despesa</div>
+            <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className="rounded-2xl" placeholder="NF, guia ou recibo" />
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Comprovante de pagamento</div>
+            <Input value={paymentReceiptNumber} onChange={(e) => setPaymentReceiptNumber(e.target.value)} className="rounded-2xl" placeholder="Nº do Pix / transferência" />
           </div>
           <div className="md:col-span-2">
             <div className="mb-1 text-xs font-medium text-[hsl(var(--muted-ink))]">Observações</div>

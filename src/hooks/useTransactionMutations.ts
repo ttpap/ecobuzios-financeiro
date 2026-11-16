@@ -183,6 +183,7 @@ export function useTransactionMutations({
       amount,
       currentMonthIndex,
       documentNumber,
+      paymentReceiptNumber,
       notes,
       dueDate,
       files,
@@ -193,6 +194,7 @@ export function useTransactionMutations({
       amount: string;
       currentMonthIndex: number;
       documentNumber: string;
+      paymentReceiptNumber: string;
       notes: string;
       dueDate: string;
       files: File[];
@@ -201,6 +203,8 @@ export function useTransactionMutations({
       if (!vendor?.id) throw new Error("Selecione um fornecedor");
       if (!paymentMethod) throw new Error("Selecione a forma de pagamento");
       if (!paidDate) throw new Error("Informe a data de pagamento");
+      if (!documentNumber.trim() && !paymentReceiptNumber.trim())
+        throw new Error("Informe o documento da despesa ou o comprovante de pagamento");
 
       const parsedAmount = parsePtBrMoneyToNumber(amount);
       if (!parsedAmount || parsedAmount <= 0) throw new Error("Informe um valor válido");
@@ -221,6 +225,7 @@ export function useTransactionMutations({
           amount: parsedAmount,
           description: line.name,
           document_number: documentNumber.trim() || null,
+          payment_receipt_number: paymentReceiptNumber.trim() || null,
           notes: notes.trim() || null,
           created_by_user_id: userId,
           vendor_id: vendor.id,
@@ -276,6 +281,7 @@ export function useTransactionMutations({
       editingMonthIndex,
       currentMonthIndex,
       documentNumber,
+      paymentReceiptNumber,
       notes,
       dueDate,
       files,
@@ -288,6 +294,7 @@ export function useTransactionMutations({
       editingMonthIndex: number;
       currentMonthIndex: number;
       documentNumber: string;
+      paymentReceiptNumber: string;
       notes: string;
       dueDate: string;
       files: File[];
@@ -296,6 +303,8 @@ export function useTransactionMutations({
       if (!vendor?.id) throw new Error("Selecione um fornecedor");
       if (!paymentMethod) throw new Error("Selecione a forma de pagamento");
       if (!paidDate) throw new Error("Informe a data de pagamento");
+      if (!documentNumber.trim() && !paymentReceiptNumber.trim())
+        throw new Error("Informe o documento da despesa ou o comprovante de pagamento");
 
       const parsedAmount = parsePtBrMoneyToNumber(amount);
       if (!parsedAmount || parsedAmount <= 0) throw new Error("Informe um valor válido");
@@ -317,6 +326,7 @@ export function useTransactionMutations({
           vendor_id: vendor.id,
           payment_method: paymentMethod,
           document_number: documentNumber.trim() || null,
+          payment_receipt_number: paymentReceiptNumber.trim() || null,
           due_date: dueDate || null,
           paid_date: paidDate,
           date: paidDate,

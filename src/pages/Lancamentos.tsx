@@ -50,7 +50,7 @@ export default function Lancamentos() {
     const query = q.trim().toLowerCase();
     if (!query) return txQuery.data ?? [];
     return (txQuery.data ?? []).filter((t) => {
-      const hay = `${t.description ?? ""} ${t.expense_type ?? ""} ${t.document_number ?? ""} ${t.notes ?? ""}`.toLowerCase();
+      const hay = `${t.description ?? ""} ${t.expense_type ?? ""} ${t.document_number ?? ""} ${t.payment_receipt_number ?? ""} ${t.notes ?? ""}`.toLowerCase();
       return hay.includes(query);
     });
   }, [txQuery.data, q]);
@@ -107,6 +107,7 @@ export default function Lancamentos() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Documento</TableHead>
+                <TableHead>Comprovante</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
@@ -118,12 +119,13 @@ export default function Lancamentos() {
                   <TableCell className="text-sm font-medium text-[hsl(var(--ink))]">{t.description ?? "—"}</TableCell>
                   <TableCell className="text-sm text-[hsl(var(--muted-ink))]">{t.expense_type ?? "—"}</TableCell>
                   <TableCell className="text-sm text-[hsl(var(--muted-ink))]">{t.document_number ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-[hsl(var(--muted-ink))]">{t.payment_receipt_number ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold text-[hsl(var(--ink))]">{formatBRL(Number(t.amount))}</TableCell>
                 </TableRow>
               ))}
               {!rows.length && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-sm text-[hsl(var(--muted-ink))]">
+                  <TableCell colSpan={7} className="py-8 text-center text-sm text-[hsl(var(--muted-ink))]">
                     Nenhum lançamento encontrado.
                   </TableCell>
                 </TableRow>

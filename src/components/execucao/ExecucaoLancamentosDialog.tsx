@@ -66,6 +66,7 @@ export function ExecucaoLancamentosDialog({
   function fillFormFromTx(t: any) {
     form.setPaymentMethod((t.payment_method as any) || "");
     form.setDocumentNumber(t.document_number || "");
+    form.setPaymentReceiptNumber(t.payment_receipt_number || "");
     form.setDueDate(t.due_date || "");
     form.setPaidDate(t.paid_date || "");
     form.setAmount(formatPtBrDecimal(Number(t.amount ?? 0)));
@@ -92,6 +93,7 @@ export function ExecucaoLancamentosDialog({
     form.setVendor(null);
     form.setPaymentMethod("");
     form.setDocumentNumber("");
+    form.setPaymentReceiptNumber("");
     form.setDueDate("");
     form.setPaidDate("");
     form.setAmount("");
@@ -167,6 +169,7 @@ export function ExecucaoLancamentosDialog({
       amount: form.amount,
       currentMonthIndex: form.currentMonthIndex,
       documentNumber: form.documentNumber,
+      paymentReceiptNumber: form.paymentReceiptNumber,
       notes: form.notes,
       dueDate: form.dueDate,
       files: form.files,
@@ -179,6 +182,7 @@ export function ExecucaoLancamentosDialog({
           form.setVendor(null);
           form.setPaymentMethod("");
           form.setDocumentNumber("");
+          form.setPaymentReceiptNumber("");
           form.setDueDate("");
           form.setPaidDate("");
           form.setAmount("");
@@ -268,6 +272,8 @@ export function ExecucaoLancamentosDialog({
               onPaymentMethodChange={form.setPaymentMethod}
               documentNumber={form.documentNumber}
               onDocumentNumberChange={form.setDocumentNumber}
+              paymentReceiptNumber={form.paymentReceiptNumber}
+              onPaymentReceiptNumberChange={form.setPaymentReceiptNumber}
               dueDate={form.dueDate}
               onDueDateChange={form.setDueDate}
               paidDate={form.paidDate}

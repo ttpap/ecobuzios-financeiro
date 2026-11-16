@@ -83,6 +83,7 @@ export type Transaction = {
   description: string | null;
   expense_type: string | null;
   document_number: string | null;
+  payment_receipt_number: string | null;
   notes: string | null;
   created_by_user_id: string;
   created_at: string;

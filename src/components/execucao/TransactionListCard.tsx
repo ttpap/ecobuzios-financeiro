@@ -75,6 +75,7 @@ export function TransactionListCard({
                 <div className="mt-1 text-xs text-[hsl(var(--muted-ink))]">
                   {t.paid_date ? `Pago em ${t.paid_date}` : ""}
                   {t.document_number ? ` · Doc: ${t.document_number}` : ""}
+                  {t.payment_receipt_number ? ` · Comprov.: ${t.payment_receipt_number}` : ""}
                 </div>
 
                 <div className="mt-2 flex flex-wrap gap-2">

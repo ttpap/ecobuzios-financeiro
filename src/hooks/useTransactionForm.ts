@@ -7,6 +7,7 @@ export function useTransactionForm(initialMonthIndex: number, initialLineId: str
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [paymentReceiptNumber, setPaymentReceiptNumber] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [paidDate, setPaidDate] = useState("");
   const [amount, setAmount] = useState<string>("");
@@ -23,6 +24,7 @@ export function useTransactionForm(initialMonthIndex: number, initialLineId: str
     setVendor(null);
     setPaymentMethod("");
     setDocumentNumber("");
+    setPaymentReceiptNumber("");
     setDueDate("");
     setPaidDate("");
     setAmount("");
@@ -37,6 +39,7 @@ export function useTransactionForm(initialMonthIndex: number, initialLineId: str
     vendor, setVendor,
     paymentMethod, setPaymentMethod,
     documentNumber, setDocumentNumber,
+    paymentReceiptNumber, setPaymentReceiptNumber,
     dueDate, setDueDate,
     paidDate, setPaidDate,
     amount, setAmount,
